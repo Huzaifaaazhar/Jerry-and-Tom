@@ -21,8 +21,8 @@ export async function startEpisode(page: Page, episodeTitle: string, character: 
   if (!opts.keepSave && episodeTitle !== 'Midnight Snack') await unlockAll(page);
   await page.goto('/');
   await page.getByRole('button', { name: 'Play', exact: true }).click();
+  // Clicking an unlocked episode card opens its character / mode selection.
   await page.getByRole('button', { name: new RegExp(`: ${episodeTitle}`) }).first().click();
-  await page.getByRole('button', { name: /^(Play|Replay) episode$/ }).click().catch(() => undefined);
   await page.getByRole('radio', { name: new RegExp(character) }).click();
   await page.getByRole('button', { name: new RegExp(`Play as ${character}`) }).click();
   await page.waitForFunction(() => (window as any).__GAME__?.world?.player?.grounded === true, null, { timeout: 90_000 });

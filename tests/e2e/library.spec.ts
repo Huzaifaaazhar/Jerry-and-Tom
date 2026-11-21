@@ -10,7 +10,7 @@ test.describe('episode library, progression and save/load', () => {
     await expect(page.getByRole('button', { name: /Episode 2: Sunday Picnic\. Locked/ })).toBeVisible();
     await page.getByRole('button', { name: /Episode 2: Sunday Picnic/ }).click();
     await expect(page.getByText('Finish Midnight Snack to unlock this episode.')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Locked' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Locked', exact: true })).toBeDisabled();
     await expect(page.getByText('0 of 2 episodes completed')).toBeVisible();
   });
 
