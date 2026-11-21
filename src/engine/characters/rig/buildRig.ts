@@ -41,6 +41,9 @@ export interface Rig {
   ankleL: THREE.Group;
   ankleR: THREE.Group;
   tail: THREE.Group[];
+  /** Finger joints per hand (curl with rotation.x), for grips, fists and open "take" hands. */
+  fingersL: THREE.Group[];
+  fingersR: THREE.Group[];
   earL: THREE.Group;
   earR: THREE.Group;
   eyes: [EyeRig, EyeRig];
@@ -448,9 +451,20 @@ export function buildRig(look: ProceduralLook): Rig {
     const el = group(sh, [0, -A.length * 0.5, 0], side < 0 ? 'elbowL' : 'elbowR');
     capsule(el, A.thickness * 0.92, A.length * 0.36, fur, ol);
     const hand = group(el, [0, -A.length * 0.46, 0]);
-    ellipsoid(hand, [A.hand, A.hand * 0.9, A.hand * 0.85], [0, -A.hand * 0.4, A.hand * 0.1], muzzle, ol);
-    ellipsoid(hand, [A.hand * 0.38, A.hand * 0.38, A.hand * 0.38], [-side * A.hand * 0.75, -A.hand * 0.1, A.hand * 0.3], muzzle);
-    return { sh, el };
+    // Palm, three cartoon fingers and a thumb (classic four-digit cartoon hand).
+    ellipsoid(hand, [A.hand * 0.9, A.hand * 0.72, A.hand * 0.6], [0, -A.hand * 0.32, A.hand * 0.05], muzzle, ol);
+    const fingers: THREE.Group[] = [];
+    for (let k = 0; k < 3; k++) {
+      const fg = group(hand, [(k - 1) * A.hand * 0.52, -A.hand * 0.82, A.hand * 0.08]);
+      fg.rotation.z = (k - 1) * 0.16;
+      capsule(fg, A.hand * 0.21, A.hand * (k === 1 ? 0.62 : 0.52), muzzle, ol * 0.6);
+      fingers.push(fg);
+    }
+    const thumb = group(hand, [-side * A.hand * 0.78, -A.hand * 0.32, A.hand * 0.22]);
+    thumb.rotation.z = -side * 0.95;
+    thumb.rotation.x = -0.35;
+    capsule(thumb, A.hand * 0.2, A.hand * 0.42, muzzle, ol * 0.6);
+    return { sh, el, fingers };
   };
   const armL = mkArm(-1);
   const armR = mkArm(1);
@@ -464,7 +478,10 @@ export function buildRig(look: ProceduralLook): Rig {
     capsule(kn, LG.thickness, L * 0.32, fur, ol);
     const an = group(kn, [0, -L * 0.42, 0], side < 0 ? 'ankleL' : 'ankleR');
     ellipsoid(an, [LG.foot * 0.55, L * 0.11, LG.foot], [0, -L * 0.05, LG.foot * 0.45], fur, ol);
-    ellipsoid(an, [LG.foot * 0.5, L * 0.09, LG.foot * 0.45], [0, -L * 0.06, LG.foot * 1.0], muzzle);
+    // Three rounded toes at the front of each foot.
+    for (let k = 0; k < 3; k++) {
+      ellipsoid(an, [LG.foot * 0.21, L * 0.075, LG.foot * 0.26], [(k - 1) * LG.foot * 0.33, -L * 0.075, LG.foot * (k === 1 ? 1.32 : 1.24)], muzzle, ol * 0.6);
+    }
     return { th, kn, an };
   };
   const legL = mkLeg(-1);
@@ -549,6 +566,8 @@ export function buildRig(look: ProceduralLook): Rig {
     ankleL: legL.an,
     ankleR: legR.an,
     tail,
+    fingersL: armL.fingers,
+    fingersR: armR.fingers,
     earL: ears[0],
     earR: ears[1],
     eyes: eyes as [EyeRig, EyeRig],

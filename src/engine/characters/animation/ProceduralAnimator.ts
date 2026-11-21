@@ -232,6 +232,7 @@ export class ProceduralAnimator {
     const sxz = 1 / Math.sqrt(s);
     r.squash.scale.set(sxz, s, sxz);
 
+    this.hands(state, dt);
     this.secondary(agent, dt, speed, cadence, state);
     const expr = this.updateFace(agent, dt, state);
 
@@ -382,6 +383,36 @@ export class ProceduralAnimator {
     r.kneeR.rotation.x += (pose.knR - r.kneeR.rotation.x) * f;
     r.ankleL.rotation.x += (pose.anL - r.ankleL.rotation.x) * f;
     r.ankleR.rotation.x += (pose.anR - r.ankleR.rotation.x) * f;
+  }
+
+  /** Finger curl per pose: fists when running, open splayed hands for grabs and double-takes. */
+  private hands(state: AnimState, dt: number) {
+    const curl: Partial<Record<AnimState, number>> = {
+      run: 1.4,
+      walk: 0.6,
+      sneak: 1.0,
+      laugh: 0.9,
+      interact: 0.2,
+      grab: -0.25,
+      pounce: -0.25,
+      react: -0.35,
+      celebrate: 1.2,
+      fall: -0.2,
+      jump: 0.3,
+      sleep: 0.8,
+      defeat: 0.3,
+      ouch: 1.1,
+    };
+    const spread = state === 'react' || state === 'grab' || state === 'pounce' || state === 'fall' ? 1.6 : 1;
+    const target = -(curl[state] ?? 0.45);
+    const f = dampFactor(16, dt);
+    const r = this.rig;
+    for (const list of [r.fingersL, r.fingersR]) {
+      list.forEach((g, k) => {
+        g.rotation.x += (target - g.rotation.x) * f;
+        g.rotation.z += ((k - 1) * 0.16 * spread - g.rotation.z) * f;
+      });
+    }
   }
 
   private secondary(agent: AgentState, dt: number, speed: number, _cadence: number, state: AnimState) {
