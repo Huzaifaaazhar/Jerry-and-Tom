@@ -21,7 +21,9 @@ export type AnimState =
   | 'sleep'
   | 'hidden'
   | 'celebrate'
-  | 'defeat';
+  | 'defeat'
+  | 'splat'
+  | 'ouch';
 
 export type Expression =
   | 'neutral'
@@ -36,7 +38,7 @@ export type Expression =
   | 'sleepy'
   | 'sad';
 
-export type StunKind = 'slip' | 'trap' | 'pummel' | 'dizzy';
+export type StunKind = 'slip' | 'trap' | 'pummel' | 'dizzy' | 'splat' | 'ouch';
 
 export interface ControlIntent {
   /** World-space desired move direction, length 0..1. */

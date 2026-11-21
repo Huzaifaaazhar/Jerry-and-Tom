@@ -25,7 +25,13 @@ export type GameEvent =
   | { type: 'jump'; agentId: string }
   | { type: 'land'; agentId: string; impact: number }
   | { type: 'taunt'; agentId: string; position: Vec3Tuple }
-  | { type: 'pounce'; agentId: string };
+  | { type: 'pounce'; agentId: string }
+  | { type: 'broken'; agentId: string; objectId: string; position: Vec3Tuple }
+  | { type: 'bonked'; agentId: string; byObject: string; position: Vec3Tuple }
+  | { type: 'splat'; agentId: string; cause: 'door' | 'wall' | 'fall'; position: Vec3Tuple }
+  | { type: 'slam'; agentId: string; doorId: string }
+  | { type: 'nearMiss'; agentId: string; hunterId: string; position: Vec3Tuple }
+  | { type: 'stage'; index: number; id: string; title: string };
 
 export type GameEventType = GameEvent['type'];
 type Handler<T extends GameEventType> = (e: Extract<GameEvent, { type: T }>) => void;

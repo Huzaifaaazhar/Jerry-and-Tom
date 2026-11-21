@@ -9,9 +9,14 @@ export function placementBoxes(p: PropPlacement): BoxSpec[] {
   return def.colliders(p).map((b) => transformBox(b, p.position, p.rotation ?? 0, p.scale ?? 1));
 }
 
-export function collectObstacleBoxes(env: EnvironmentDefinition, extraProps: PropPlacement[] = []): BoxSpec[] {
+/** Stable id for a placed prop (explicit id or type + index). */
+export const placementId = (p: PropPlacement, index: number) => p.id ?? `${p.type}-${index}`;
+
+export function collectObstacleBoxes(env: EnvironmentDefinition, extraProps: PropPlacement[] = [], removed: Set<string> = new Set()): BoxSpec[] {
   const boxes: BoxSpec[] = [];
   for (const w of env.walls) boxes.push(...wallBoxes(w, env.wallHeight));
-  for (const p of [...env.props, ...extraProps]) boxes.push(...placementBoxes(p));
+  [...env.props, ...extraProps].forEach((p, i) => {
+    if (!removed.has(placementId(p, i))) boxes.push(...placementBoxes(p));
+  });
   return boxes;
 }

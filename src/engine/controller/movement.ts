@@ -11,6 +11,7 @@ import type { CharacterDefinition } from '../characters/types';
 import { groups } from '../core/physics';
 import { clamp, dampAngle } from '../core/math';
 import { audio } from '../audio/audio';
+import { splat } from './rules';
 
 const GROUND_OFFSETS: [number, number][] = [
   [0, 0],
@@ -50,6 +51,8 @@ export function stepMovement(agent: AgentState, def: CharacterDefinition, dt: nu
 
   if (grounded && !wasGrounded && lv.y < -4) {
     agent.anim.impact = -lv.y;
+    // Big drops flatten anyone heavier than a mouse.
+    if (-lv.y > 13.5 && agent.archetype !== 'prey') splat(agent, 'fall', 1.4);
     world.events.emit({ type: 'land', agentId: agent.id, impact: -lv.y });
     audio.play('land', { gain: clamp(-lv.y / 14, 0.15, 0.8), pitch: 1.4 - agent.height * 0.3 });
     if (-lv.y > 7) world.emitNoise(agent.position, agent.archetype === 'prey' ? 2.5 : 6, 'land', agent.id);
@@ -73,8 +76,17 @@ export function stepMovement(agent: AgentState, def: CharacterDefinition, dt: nu
   let vx = lv.x;
   let vz = lv.z;
   let vy = lv.y;
-  const pouncing = agent.status.action === 'pounce' && agent.status.actionUntil > now;
+  let pouncing = agent.status.action === 'pounce' && agent.status.actionUntil > now;
+  if (pouncing && agent.cooldowns.pounceStart === undefined) agent.cooldowns.pounceStart = now;
 
+  // A pounce that slams into something solid ends in a face-plant.
+  if (pouncing && (agent.cooldowns.pounceStart ?? 0) < now - 0.15 && Math.hypot(lv.x, lv.z) < 3.5) {
+    agent.status.actionUntil = now;
+    agent.status.action = null;
+    splat(agent, 'wall', 1.5);
+  }
+  pouncing = agent.status.action === 'pounce' && agent.status.actionUntil > now;
+  if (!pouncing) delete agent.cooldowns.pounceStart;
   if (pouncing) {
     const pv = 10.5;
     vx = Math.sin(agent.facing) * pv;
@@ -141,7 +153,13 @@ function deriveAnimState(agent: AgentState, def: CharacterDefinition, hs: number
   const one = agent.anim.oneShot;
   if (one && one.until > now) return one.state;
   if (one) agent.anim.oneShot = null;
-  if (world.isStunned(agent)) return agent.status.stunKind === 'slip' ? 'slip' : 'stunned';
+  if (world.isStunned(agent)) {
+    const k = agent.status.stunKind;
+    if (k === 'slip') return 'slip';
+    if (k === 'ouch') return 'ouch';
+    if (k === 'splat' && agent.status.stunnedUntil - now > 0.9) return 'splat';
+    return 'stunned';
+  }
   if (pouncing) return 'pounce';
   if (agent.status.action === 'taunt' && agent.status.actionUntil > now) return 'laugh';
   if (!grounded && agent.airTime > 0.1) return agent.velocity.y > 0.5 ? 'jump' : 'fall';

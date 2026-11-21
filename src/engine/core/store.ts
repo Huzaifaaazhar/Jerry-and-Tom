@@ -29,6 +29,7 @@ export interface MatchResult {
   caption: string;
   stats: { label: string; value: string }[];
   bonus: { label: string; done: boolean }[];
+  stages?: { title: string; done: boolean }[];
 }
 
 export interface Settings {
@@ -53,6 +54,26 @@ export interface HudState {
   /** Short label of the room the player is in. */
   room: string | null;
   lives: { current: number; max: number } | null;
+  /** Current mission in the episode's stage sequence. */
+  stage: { index: number; total: number; title: string; brief: string; timeLeft: number | null } | null;
+  /** Prey HUD: how exposed the player is right now. */
+  detection: 'hidden' | 'safe' | 'heard' | 'seen' | null;
+  /** Hunter HUD: screen-space direction (degrees) toward the prey's last known whereabouts. */
+  scent: { angle: number; fresh: number } | null;
+  role: 'hunter' | 'prey' | 'guardian' | null;
+}
+
+export interface CutsceneView {
+  caption: string | null;
+  skippable: boolean;
+}
+
+export interface StageBanner {
+  index: number;
+  total: number;
+  title: string;
+  brief: string;
+  key: number;
 }
 
 interface GameStore {
@@ -67,6 +88,10 @@ interface GameStore {
   toasts: Toast[];
   result: MatchResult | null;
   pointerLocked: boolean;
+  cutscene: CutsceneView | null;
+  banner: StageBanner | null;
+  setCutscene: (c: CutsceneView | null) => void;
+  showBanner: (b: Omit<StageBanner, 'key'> | null) => void;
 
   goTo: (screen: Screen) => void;
   selectEpisode: (id: string) => void;
@@ -116,6 +141,10 @@ export const emptyHud = (): HudState => ({
   stunned: false,
   room: null,
   lives: null,
+  stage: null,
+  detection: null,
+  scent: null,
+  role: null,
 });
 
 let toastId = 0;
@@ -132,12 +161,16 @@ export const useGame = create<GameStore>((set, get) => ({
   toasts: [],
   result: null,
   pointerLocked: false,
+  cutscene: null,
+  banner: null,
+  setCutscene: (cutscene) => set({ cutscene }),
+  showBanner: (b) => set({ banner: b ? { ...b, key: ++toastId } : null }),
 
   goTo: (screen) => set({ screen, paused: false }),
   selectEpisode: (id) => set({ episodeId: id }),
   selectCharacter: (id) => set({ characterId: id }),
   startRun: () =>
-    set((s) => ({ screen: 'playing', paused: false, runId: s.runId + 1, result: null, hud: emptyHud(), toasts: [], loading: true })),
+    set((s) => ({ screen: 'playing', paused: false, runId: s.runId + 1, result: null, hud: emptyHud(), toasts: [], loading: true, cutscene: null, banner: null })),
   restart: () => get().startRun(),
   setPaused: (paused) => set({ paused }),
   setLoading: (loading) => set({ loading }),

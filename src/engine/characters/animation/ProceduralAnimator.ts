@@ -135,6 +135,31 @@ export class ProceduralAnimator {
       case 'stunned':
         this.stunned(pose, agent);
         break;
+      case 'splat':
+        // Flattened pancake, arms and legs splayed like a starfish.
+        pose.hipsY = -0.25;
+        pose.shL = [-0.2, 0, -1.5];
+        pose.shR = [-0.2, 0, 1.5];
+        pose.elL = pose.elR = 0;
+        pose.thL = [0, 0, -0.7];
+        pose.thR = [0, 0, 0.7];
+        pose.head = [0, 0, Math.sin(this.t * 10) * 0.1];
+        break;
+      case 'ouch': {
+        // Hopping on one foot, clutching the other.
+        const hop = Math.abs(Math.sin(this.t * 11));
+        pose.hipsY = hop * 0.22;
+        pose.hipsRot[2] = Math.sin(this.t * 5.5) * 0.15;
+        pose.thL = [-1.3, 0, 0];
+        pose.knL = 1.9;
+        pose.thR = [0.1, 0, 0.05];
+        pose.shL = [-0.9, 0, -0.3];
+        pose.shR = [-0.9, 0, 0.3];
+        pose.elL = pose.elR = -1.4;
+        pose.spine[0] = 0.35;
+        pose.head = [-0.4, 0, Math.sin(this.t * 7) * 0.2];
+        break;
+      }
       case 'laugh':
         pose.hipsY = Math.abs(Math.sin(T * 16)) * 0.025;
         pose.spine[0] = -0.25 + Math.sin(T * 16) * 0.08;
@@ -198,6 +223,7 @@ export class ProceduralAnimator {
     let target = 1;
     if (!agent.grounded && state !== 'slip') target = 1 + clamp(agent.velocity.y * 0.03, -0.12, 0.22);
     if (agent.status.stunKind === 'trap' && agent.status.stunnedUntil > 0 && state === 'stunned' && this.stateTime < 1.2) target = 0.35;
+    if (state === 'splat') target = 0.38;
     const k = 260;
     const c = 14;
     this.squashVel += ((target - this.squash) * k - this.squashVel * c) * dt;
@@ -209,7 +235,7 @@ export class ProceduralAnimator {
     this.secondary(agent, dt, speed, cadence, state);
     const expr = this.updateFace(agent, dt, state);
 
-    r.stars.visible = state === 'stunned' || state === 'slip';
+    r.stars.visible = state === 'stunned' || state === 'slip' || state === 'splat';
     if (r.stars.visible) r.stars.rotation.y += dt * 5;
     r.zzz.visible = state === 'sleep';
     if (r.zzz.visible) {
@@ -386,7 +412,8 @@ export class ProceduralAnimator {
     const ov = agent.anim.expressionOverride;
     let expr = ov && ov.until > this.t - this.seed ? ov.expression : agent.anim.expression;
     if (state === 'laugh') expr = 'laughing';
-    else if (state === 'stunned' || state === 'slip') expr = 'dizzy';
+    else if (state === 'stunned' || state === 'slip' || state === 'splat') expr = 'dizzy';
+    else if (state === 'ouch') expr = 'angry';
     else if (state === 'sleep') expr = 'sleepy';
     else if (state === 'react') expr = 'surprised';
     lerpFace(this.face, EXPRESSIONS[expr], dampFactor(12, dt));

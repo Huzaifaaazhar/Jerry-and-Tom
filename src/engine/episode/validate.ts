@@ -29,8 +29,22 @@ export function validateEpisode(ep: EpisodeDefinition): string[] {
   for (const p of ep.pickups) if (!getItem(p.type)) errors.push(`${ep.id}: unknown item type "${p.type}"`);
   const zoneIds = new Set(env.zones.map((z) => z.id));
   for (const [sideId, side] of Object.entries(ep.sides)) {
-    const objIds = new Set(side.objectives.map((o) => o.id));
-    for (const o of side.objectives) {
+    const lists = [side.objectives, ...(side.stages ?? []).map((st) => st.objectives)];
+    if (side.stages) {
+      const ids = side.stages.map((st) => st.id);
+      if (new Set(ids).size !== ids.length) errors.push(`${ep.id}/${sideId}: duplicate stage ids`);
+      for (const st of side.stages) {
+        if (!st.objectives.some((o) => !o.optional)) errors.push(`${ep.id}/${sideId}: stage "${st.id}" has no required objectives`);
+        for (const a of st.onStart ?? []) {
+          if ((a.type === 'npc' || a.type === 'teleport' || a.type === 'wake') && !ep.cast.some((c) => c.characterId === a.characterId)) errors.push(`${ep.id}/${sideId}: stage "${st.id}" targets unknown cast member "${a.characterId}"`);
+          if (a.type === 'showPickups' && !ep.pickups.some((p) => p.group === a.group)) errors.push(`${ep.id}/${sideId}: stage "${st.id}" reveals empty pickup group "${a.group}"`);
+          if (a.type === 'npc' && a.command.type === 'runTo' && !zoneIds.has(a.command.zoneId)) errors.push(`${ep.id}/${sideId}: unknown zone "${a.command.zoneId}"`);
+        }
+      }
+    }
+    for (const list of lists) {
+    const objIds = new Set(list.map((o) => o.id));
+    for (const o of list) {
       if (o.type === 'reach' && !zoneIds.has(o.zoneId)) errors.push(`${ep.id}/${sideId}: objective "${o.id}" uses unknown zone "${o.zoneId}"`);
       if (o.type === 'reach') for (const a of o.after ?? []) if (!objIds.has(a)) errors.push(`${ep.id}/${sideId}: "${o.id}" waits for unknown objective "${a}"`);
       if (o.type === 'collect') {
@@ -38,7 +52,8 @@ export function validateEpisode(ep: EpisodeDefinition): string[] {
         if (n < o.count) errors.push(`${ep.id}/${sideId}: needs ${o.count} ${o.itemType} but only ${n} are placed`);
       }
     }
-    if (!side.objectives.some((o) => !o.optional)) errors.push(`${ep.id}/${sideId}: no required objectives`);
+    }
+    if (!side.stages?.length && !side.objectives.some((o) => !o.optional)) errors.push(`${ep.id}/${sideId}: no required objectives`);
     for (const k of Object.keys(side.charges ?? {})) if (!getTrap(k)) errors.push(`${ep.id}/${sideId}: unknown trap item "${k}"`);
   }
   for (const ev of ep.events) if (ev.when.type === 'event' && ev.when.zoneId && !zoneIds.has(ev.when.zoneId)) errors.push(`${ep.id}: event "${ev.id}" uses unknown zone`);

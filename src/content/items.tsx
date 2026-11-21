@@ -56,7 +56,7 @@ function Mousetrap({ sprung }: { sprung: boolean }) {
     </group>
   );
 }
-registerTrap({ id: 'mousetrap', label: 'Mousetrap', affects: ['prey'], stunKind: 'trap', stunSeconds: 2.6, sound: 'snap', radius: 0.32, Render: Mousetrap });
+registerTrap({ id: 'mousetrap', label: 'Mousetrap', affects: ['prey', 'hunter'], stunKind: 'trap', stunSeconds: 2.6, sound: 'snap', radius: 0.32, Render: Mousetrap });
 
 function BananaPeel({ sprung }: { sprung: boolean }) {
   return (
@@ -70,3 +70,57 @@ function BananaPeel({ sprung }: { sprung: boolean }) {
   );
 }
 registerTrap({ id: 'bananaPeel', label: 'Banana peel', affects: ['hunter', 'guardian'], stunKind: 'slip', stunSeconds: 2.2, sound: 'slip', radius: 0.45, Render: BananaPeel });
+
+function Crumb() {
+  return (
+    <group scale={0.8}>
+      <Box p={[0, 0, 0]} s={[0.32, 0.08, 0.32]} color="#e2b26a" radius={0.02} />
+      {[-0.08, 0.08].map((x) => [-0.08, 0.08].map((z) => <Ball key={`${x}${z}`} p={[x, 0.045, z]} rad={0.018} color="#b07a3a" />))}
+    </group>
+  );
+}
+registerItem({ id: 'crumb', label: 'Cracker crumb', collectors: ['prey'], Render: Crumb });
+
+function BigCheese() {
+  return (
+    <group scale={1.3}>
+      <Cyl p={[0, 0, 0]} rt={0.32} h={0.22} color="#f5c542" seg={28} outline />
+      <Cyl p={[0, 0.115, 0]} rt={0.3} h={0.01} color="#fbe08a" seg={28} shadow={false} />
+      {[0, 2, 4].map((k) => (
+        <Ball key={k} p={[Math.cos(k) * 0.33, Math.sin(k) * 0.05, Math.sin(k) * 0.33]} rad={0.045} color="#d99a12" />
+      ))}
+    </group>
+  );
+}
+registerItem({ id: 'bigCheese', label: 'Big cheese', collectors: ['prey'], Render: BigCheese });
+
+/** Kitchen-floor puddle: anyone hurrying across it goes for a ride. */
+function Puddle({ sprung }: { sprung: boolean }) {
+  return (
+    <group>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, 0]} material={toon('#9fd8e6', { opacity: 0.75, key: 'puddle' })}>
+        <circleGeometry args={[0.85, 24]} />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, sprung ? 0.5 : 0]} position={[0.3, 0.015, -0.2]} material={toon('#ffffff', { opacity: 0.6, key: 'puddle-shine' })}>
+        <circleGeometry args={[0.18, 12]} />
+      </mesh>
+    </group>
+  );
+}
+registerTrap({ id: 'puddle', label: 'Puddle', affects: ['hunter', 'guardian'], stunKind: 'slip', stunSeconds: 1.8, sound: 'slip', radius: 0.75, Render: Puddle, persistent: true, minSpeed: 4.2 });
+
+/** Garden rake: step on the tines and the handle swings up to say hello. */
+function Rake({ sprung }: { sprung: boolean }) {
+  return (
+    <group>
+      <Box p={[0, 0.03, 0]} s={[0.6, 0.04, 0.08]} color="#8b969b" />
+      {[-0.25, -0.12, 0, 0.12, 0.25].map((x) => (
+        <Box key={x} p={[x, 0.05, 0.05]} s={[0.03, 0.03, 0.12]} color="#8b969b" shadow={false} />
+      ))}
+      <group rotation={[sprung ? -1.3 : -0.06, 0, 0]}>
+        <Box p={[0, 0.05, -0.8]} s={[0.05, 0.05, 1.6]} color="#b5733f" />
+      </group>
+    </group>
+  );
+}
+registerTrap({ id: 'rake', label: 'Garden rake', affects: ['hunter', 'guardian'], stunKind: 'dizzy', stunSeconds: 1.8, sound: 'snap', radius: 0.45, Render: Rake, persistent: true });

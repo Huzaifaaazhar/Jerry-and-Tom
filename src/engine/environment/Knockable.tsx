@@ -13,6 +13,7 @@ import { interactions } from '../interaction/registry';
 import { world } from '../core/world';
 import { audio } from '../audio/audio';
 import { toon } from '../style/materials';
+import { laughAt } from '../controller/rules';
 
 export function Knockable({ id, placement, def }: { id: string; placement: PropPlacement; def: KnockableDef }) {
   const body = useRef<RapierRigidBody>(null);
@@ -75,6 +76,16 @@ export function Knockable({ id, placement, def }: { id: string; placement: PropP
       audio.play('crash');
       world.emitNoise(live, def.noiseRadius, 'crash', s.by);
       world.events.emit({ type: 'knocked', agentId: s.by, objectId: id, position: [t.x, t.y, t.z] });
+      // Whoever is standing underneath gets bonked (but never the one who knocked it).
+      for (const a of world.agents.values()) {
+        if (a.id === s.by || a.status.hiddenIn || world.isStunned(a)) continue;
+        if (Math.hypot(a.position.x - t.x, a.position.z - t.z) < 1.25) {
+          world.stun(a, 'dizzy', 1.8);
+          world.flashExpression(a, 'dizzy', 1.8);
+          world.events.emit({ type: 'bonked', agentId: a.id, byObject: id, position: [a.position.x, a.position.y, a.position.z] });
+          laughAt(a);
+        }
+      }
       setBroken(new THREE.Vector3(t.x, 0.02, t.z));
     }
   });

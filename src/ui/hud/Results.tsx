@@ -18,6 +18,15 @@ export function Results() {
           {result.title}
         </h2>
         <p className="result-caption">{result.caption}</p>
+        {result.stages && result.stages.length > 0 && (
+          <ol className="result-missions" aria-label="Missions">
+            {result.stages.map((st) => (
+              <li key={st.title} className={st.done ? 'done' : ''}>
+                {st.title}
+              </li>
+            ))}
+          </ol>
+        )}
         <dl className="result-stats">
           {result.stats.map((s) => (
             <div key={s.label}>

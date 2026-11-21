@@ -66,6 +66,8 @@ export class GameWorld {
   paused = false;
   /** Set by the episode runtime once the match has a result; simulation freezes gameplay rules. */
   finished = false;
+  /** A cutscene holds the action: no player control, AI waits, mission clock stops. */
+  cutscene = false;
   playerId: string | null = null;
 
   reset() {
@@ -75,6 +77,7 @@ export class GameWorld {
     this.time = 0;
     this.paused = false;
     this.finished = false;
+    this.cutscene = false;
     this.playerId = null;
   }
 

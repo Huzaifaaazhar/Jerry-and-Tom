@@ -21,6 +21,7 @@ export function HideSpotRegistrar({ id, placement, def }: { id: string; placemen
       exit: toWorld(def.exit, placement),
       archetypes: def.archetypes,
       occupant: null as string | null,
+      searchable: def.searchable,
     };
     const offSpot = interactions.registerHideSpot(spot);
     const offInt = interactions.register({

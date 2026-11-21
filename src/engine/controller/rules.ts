@@ -71,10 +71,29 @@ export function performCatch(hunter: AgentState, prey: AgentState) {
   world.playOneShot(prey, 'react', 1.0);
   world.flashExpression(prey, 'scared', 1.2);
   prey.status.respawnAt = world.time + 1.3;
-  prey.status.invulnerableUntil = world.time + 5.5;
+  prey.status.invulnerableUntil = Math.max(prey.status.invulnerableUntil, world.time + 5.5);
   audio.play('caught');
   audio.play(getCharacter(prey.characterId).voice.sound, { pitch: getCharacter(prey.characterId).voice.pitch });
   world.events.emit({ type: 'caught', catcherId: hunter.id, targetId: prey.id, position: prey.position.toArray() as [number, number, number] });
+}
+
+/** Everyone on the other side who can see the gag has a laugh. */
+export function laughAt(victim: AgentState) {
+  for (const o of world.agents.values()) {
+    if (o.id !== victim.id && o.archetype !== victim.archetype && o.position.distanceTo(victim.position) < 12 && !o.isPlayer && !world.isStunned(o)) {
+      world.playOneShot(o, 'laugh', 1.4);
+    }
+  }
+}
+
+/** Generic cartoon knock-out used by doors, walls, falls and falling objects. */
+export function splat(a: AgentState, cause: 'door' | 'wall' | 'fall', seconds = 1.8) {
+  if (world.isStunned(a)) return;
+  world.stun(a, 'splat', seconds);
+  world.flashExpression(a, 'dizzy', seconds);
+  audio.play('pummel', { gain: 0.6 });
+  world.events.emit({ type: 'splat', agentId: a.id, cause, position: a.position.toArray() as [number, number, number] });
+  laughAt(a);
 }
 
 export function processRules(env: EnvironmentDefinition, onRespawn: (a: AgentState) => void) {
@@ -119,19 +138,32 @@ export function processRules(env: EnvironmentDefinition, onRespawn: (a: AgentSta
       }
     }
 
-    // Traps
+    // Traps & hazards
     for (const t of items.traps) {
       if (t.sprung) continue;
       const def = getTrap(t.kind);
       if (!def || !def.affects.includes(a.archetype)) continue;
-      if (a.id === t.ownerId) continue;
+      // Owners get a moment to step away; a tiptoeing mouse can cross a mousetrap safely.
+      if (a.id === t.ownerId && now - t.placedAt < 2.5) continue;
+      if (a.archetype === 'prey' && a.sneaking && def.stunKind === 'trap') continue;
+      const speed = Math.hypot(a.velocity.x, a.velocity.z);
+      if (def.minSpeed && speed < def.minSpeed) continue;
+      if (def.persistent && (a.cooldowns[`hazard:${t.id}`] ?? 0) > now) continue;
       const feetY = a.position.y - a.height / 2;
       const d = Math.hypot(a.position.x - t.position[0], a.position.z - t.position[2]);
       if (d < def.radius + a.radius * 0.6 && Math.abs(feetY - t.position[1]) < 0.4 && !world.isStunned(a)) {
-        items.springTrap(t.id);
-        setTimeout(() => useItems.getState().removeTrap(t.id), 1500);
-        world.stun(a, def.stunKind, def.stunSeconds);
-        world.flashExpression(a, def.stunKind === 'slip' ? 'surprised' : 'dizzy', def.stunSeconds);
+        if (def.persistent) {
+          a.cooldowns[`hazard:${t.id}`] = now + 3.5;
+          items.springTrap(t.id);
+          setTimeout(() => useItems.getState().rearmTrap(t.id), 1200);
+        } else {
+          items.springTrap(t.id);
+          setTimeout(() => useItems.getState().removeTrap(t.id), 1500);
+        }
+        // A hunter caught in a mousetrap hops around clutching its toe.
+        const kind = def.stunKind === 'trap' && a.archetype !== 'prey' ? 'ouch' : def.stunKind;
+        world.stun(a, kind, def.stunSeconds);
+        world.flashExpression(a, kind === 'slip' ? 'surprised' : 'dizzy', def.stunSeconds);
         audio.play(def.sound);
         audio.play(getCharacter(a.characterId).voice.sound, { pitch: getCharacter(a.characterId).voice.pitch });
         if (def.stunKind === 'slip') {
@@ -141,13 +173,10 @@ export function processRules(env: EnvironmentDefinition, onRespawn: (a: AgentSta
         world.emitNoise(a.position, 10, def.sound, a.id);
         const ev = { agentId: a.id, position: [a.position.x, a.position.y, a.position.z] as [number, number, number] };
         if (def.stunKind === 'slip') world.events.emit({ type: 'slipped', ...ev });
+        else if (def.stunKind === 'dizzy') world.events.emit({ type: 'bonked', byObject: t.kind, ...ev });
         world.events.emit({ type: 'trapped', trapKind: t.kind, ...ev });
-        // Everyone nearby on the other side laughs at the gag.
-        for (const o of world.agents.values()) {
-          if (o.id !== a.id && o.archetype !== a.archetype && o.position.distanceTo(a.position) < 12 && !o.isPlayer && !world.isStunned(o)) {
-            world.playOneShot(o, 'laugh', 1.4);
-          }
-        }
+        if (a.id === t.ownerId) world.events.emit({ type: 'npcState', agentId: a.id, state: 'backfire' });
+        laughAt(a);
       }
     }
 

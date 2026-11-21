@@ -14,6 +14,7 @@ import { toon, floorTexture, wallpaperTexture } from '../style/materials';
 import { palette } from '../style/palette';
 import { groups } from '../core/physics';
 import { Door } from './Door';
+import { Breakable } from './Breakable';
 import { Knockable } from './Knockable';
 import { HideSpotRegistrar } from './HideSpotRegistrar';
 import { Lighting, LampProvider } from './lighting';
@@ -310,7 +311,10 @@ export function EnvironmentView({ env, lighting, extraProps = [] }: { env: Envir
   const staticBoxes = useMemo(() => {
     const boxes: BoxSpec[] = [];
     for (const w of env.walls) boxes.push(...wallBoxes(w, env.wallHeight));
-    for (const p of props) if (!getPropType(p.type)?.pushable) boxes.push(...placementBoxes(p));
+    for (const p of props) {
+      const t = getPropType(p.type);
+      if (!t?.pushable && !t?.breakable) boxes.push(...placementBoxes(p));
+    }
     return boxes;
   }, [env, props]);
   const doors = useMemo(
@@ -329,9 +333,12 @@ export function EnvironmentView({ env, lighting, extraProps = [] }: { env: Envir
       {doors.map((d) => (
         <Door key={d.key} id={d.key} wall={d.wall} opening={d.o} />
       ))}
-      {props.map((p, i) => (
-        <PropInstance key={p.id ?? `${p.type}-${i}`} p={p} />
-      ))}
+      {props.map((p, i) => {
+        const t = getPropType(p.type);
+        const id = p.id ?? `${p.type}-${i}`;
+        if (t?.breakable) return <Breakable key={id} id={id} placement={p} def={t.breakable} type={t} />;
+        return <PropInstance key={id} p={p} />;
+      })}
       {props.map((p, i) => {
         const def = getPropType(p.type);
         const id = p.id ?? `${p.type}-${i}`;

@@ -35,7 +35,7 @@ export function unhideAgent(agent: AgentState, flushed = false) {
   if (flushed) {
     world.playOneShot(agent, 'react', 0.7);
     world.flashExpression(agent, 'scared', 1.2);
-    agent.status.invulnerableUntil = world.time + 1.2;
+    agent.status.invulnerableUntil = Math.max(agent.status.invulnerableUntil, world.time + 2.2);
   }
   world.events.emit({ type: 'unhide', agentId: agent.id, spotId: spot.id, flushed });
 }
@@ -58,12 +58,12 @@ export function hidePrompt(agent: AgentState, spot: HideSpot): string | null {
   if (agent.status.hiddenIn === spot.id) return 'Come out';
   if (agent.status.hiddenIn) return null;
   if (spot.archetypes.includes(agent.archetype) && !spot.occupant) return spot.label;
-  if (agent.archetype === 'hunter') return `Search: ${spot.label.replace(/^Hide (in|under) /, '')}`;
+  if (agent.archetype === 'hunter' && spot.searchable !== false) return `Search: ${spot.label.replace(/^Hide (in|under) /, '')}`;
   return null;
 }
 
 export function useHideSpot(agent: AgentState, spot: HideSpot) {
   if (agent.status.hiddenIn === spot.id) return unhideAgent(agent);
   if (spot.archetypes.includes(agent.archetype) && !spot.occupant) return void hideAgent(agent, spot);
-  if (agent.archetype === 'hunter') return void searchSpot(agent, spot);
+  if (agent.archetype === 'hunter' && spot.searchable !== false) return void searchSpot(agent, spot);
 }

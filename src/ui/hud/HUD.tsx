@@ -1,7 +1,8 @@
 import { useGame } from '@engine/core/store';
 import { getEpisode } from '@engine/episode/registry';
 import { getCharacter } from '@engine/characters/registry';
-import { Check, Clock, Cross, ITEM_ICONS, Paw, Pause, Bolt, Laugh } from '../components/Icons';
+import { Check, Clock, Cross, ITEM_ICONS, Paw, Pause, Bolt, Laugh, Eye } from '../components/Icons';
+import { useEffect, useState } from 'react';
 import { world } from '@engine/core/world';
 
 function fmt(t: number) {
@@ -31,6 +32,16 @@ export function HUD() {
         <p className="hud-ep">
           Ep {ep.number} · {ep.title}
         </p>
+        {hud.stage && (
+          <div className="hud-stage">
+            <ol className="stage-dots" aria-label={`Mission ${hud.stage.index + 1} of ${hud.stage.total}`}>
+              {Array.from({ length: hud.stage.total }).map((_, i) => (
+                <li key={i} className={i < hud.stage!.index ? 'done' : i === hud.stage!.index ? 'now' : ''} />
+              ))}
+            </ol>
+            <p className="stage-title">{hud.stage.title}</p>
+          </div>
+        )}
         <ul>
           {main.map((o) => (
             <li key={o.id} className={o.done ? 'done' : ''}>
@@ -56,7 +67,7 @@ export function HUD() {
         )}
       </section>
 
-      <div className={`hud-clock ${low ? 'low' : ''}`} role="timer" aria-label={`Time left ${fmt(hud.timeLeft)}`}>
+      <div className={`hud-clock ${low ? 'low' : ''} ${hud.stage?.timeLeft != null ? 'stage-timer' : ''}`} role="timer" aria-label={`Time left ${fmt(hud.timeLeft)}`}>
         <Clock />
         <span>{fmt(hud.timeLeft)}</span>
         {hud.chase > 0.5 && <span className="chase-stamp">Chase!</span>}
@@ -75,6 +86,24 @@ export function HUD() {
         </button>
       </div>
       {hud.room && <p className="hud-room">{hud.room}</p>}
+
+      {hud.role === 'prey' && hud.detection && (
+        <div className={`detect detect-${hud.detection}`} role="status" aria-label={`Detection: ${DETECT_LABEL[hud.detection]}`}>
+          <Eye />
+          <span>{DETECT_LABEL[hud.detection]}</span>
+        </div>
+      )}
+      {hud.role === 'hunter' && (
+        <div className="scent" role="status" aria-label={hud.scent ? 'Pointing to where you last noticed the mouse' : 'No trail'}>
+          <div className="scent-dial">
+            {hud.scent && (
+              <div className="scent-arrow" style={{ transform: `rotate(${hud.scent.angle}deg)`, opacity: 0.35 + hud.scent.fresh * 0.65 }} />
+            )}
+            <Paw />
+          </div>
+          <span>{hud.scent ? 'Last trace' : 'No trail'}</span>
+        </div>
+      )}
 
       <section className="hud-bottom-left">
         <div className="who" style={{ ['--char' as string]: def.ui.color }}>
@@ -103,7 +132,7 @@ export function HUD() {
         </div>
       </section>
 
-      {hud.prompt && !hud.stunned && (
+      {hud.prompt && !hud.stunned && !useGame.getState().cutscene && (
         <div className="prompt" role="status">
           <kbd>E</kbd>
           <span>{hud.prompt}</span>
@@ -119,6 +148,9 @@ export function HUD() {
         ))}
       </div>
 
+      <StageBanner />
+      <CutsceneOverlay />
+
       {loading && (
         <div className="loading" role="status">
           <div className="loading-card">
@@ -128,6 +160,47 @@ export function HUD() {
         </div>
       )}
       {import.meta.env.DEV && useGame.getState().settings.showDebug && <DebugLine />}
+    </div>
+  );
+}
+
+const DETECT_LABEL = { hidden: 'Hidden', safe: 'Unseen', heard: 'He’s searching', seen: 'Spotted!' } as const;
+
+function StageBanner() {
+  const banner = useGame((s) => s.banner);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    if (!banner) return;
+    setVisible(true);
+    const t = setTimeout(() => setVisible(false), 3600);
+    return () => clearTimeout(t);
+  }, [banner]);
+  if (!banner || !visible) return null;
+  return (
+    <div className="stage-banner" key={banner.key} role="status">
+      <p className="stage-banner-kicker">
+        Mission {banner.index + 1} of {banner.total}
+      </p>
+      <p className="stage-banner-title">{banner.title}</p>
+      <p className="stage-banner-brief">{banner.brief}</p>
+    </div>
+  );
+}
+
+function CutsceneOverlay() {
+  const c = useGame((s) => s.cutscene);
+  if (!c) return null;
+  return (
+    <div className="cutscene" aria-live="polite">
+      <div className="letterbox top" />
+      <div className="letterbox bottom">
+        {c.caption && <p className="cut-caption">{c.caption}</p>}
+        {c.skippable && (
+          <p className="cut-skip">
+            <kbd>Space</kbd> skip
+          </p>
+        )}
+      </div>
     </div>
   );
 }

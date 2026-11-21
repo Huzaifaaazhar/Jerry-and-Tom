@@ -26,6 +26,8 @@ const FALLBACK: Partial<Record<AnimState, AnimState>> = {
   sleep: 'idle',
   celebrate: 'laugh',
   defeat: 'idle',
+  splat: 'stunned',
+  ouch: 'stunned',
 };
 
 export function GltfCharacter({ def, agent }: { def: CharacterDefinition; agent: AgentState }) {

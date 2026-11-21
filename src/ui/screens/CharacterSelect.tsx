@@ -50,8 +50,10 @@ export function CharacterSelect() {
               style={{ ['--char' as string]: d.ui.color, ['--char-accent' as string]: d.ui.accent }}
               onClick={() => (audio.play('ui'), setPick(c.characterId))}
             >
-              <span className="char-name">{d.name}</span>
-              <span className="char-species">{d.species}</span>
+              <span className="char-name">{d.archetype === 'prey' ? 'Mouse mode' : d.archetype === 'hunter' ? 'Cat mode' : d.name}</span>
+              <span className="char-species">
+                Play as {d.name}, {d.species.toLowerCase()}
+              </span>
             </button>
           );
         })}
@@ -59,6 +61,8 @@ export function CharacterSelect() {
       <section className="char-card panel" aria-live="polite">
         <p className="char-tagline">{def.tagline}</p>
         <p className="char-brief">{side.brief}</p>
+        {side.modeSummary && <p className="mode-summary">{side.modeSummary}</p>}
+        {side.stages && <p className="char-npc">{side.stages.length} missions · {side.stages.map((s) => s.title).join(' → ')}</p>}
         <ul className="char-abilities">
           {def.ability && (
             <li>

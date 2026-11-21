@@ -7,7 +7,7 @@ test.describe('core gameplay', () => {
     page.on('pageerror', (e) => errors.push(e.message));
     await startEpisode(page, 'Midnight Snack', 'Pip');
     await expect(page.getByRole('timer')).toBeVisible();
-    await expect(page.getByText('Collect cheese')).toBeVisible();
+    await expect(page.getByText('Grab the crumb on the piano keys')).toBeVisible();
     expect(errors).toEqual([]);
   });
 
@@ -57,7 +57,7 @@ test.describe('core gameplay', () => {
   });
 
   test('cat catches the mouse and the mission counter updates', async ({ page }) => {
-    await startEpisode(page, 'Midnight Snack', 'Barnaby');
+    await startEpisode(page, 'Sunday Picnic', 'Barnaby');
     await page.evaluate(() => {
       const g = (window as any).__GAME__;
       const pip = g.world.agents.get('pip');
@@ -68,14 +68,14 @@ test.describe('core gameplay', () => {
     await expect.poll(() => page.evaluate(() => (window as any).__GAME__.useGame.getState().hud.objectives[0].progress)).toBe(1);
   });
 
-  test('collecting all cheese and returning home wins the episode', async ({ page }) => {
-    await startEpisode(page, 'Midnight Snack', 'Pip');
-    const cheese: number[][] = await page.evaluate(() => (window as any).__GAME__.useItems.getState().pickups.map((p: any) => p.position));
-    for (const [x, y, z] of cheese) {
+  test('a flat (non-staged) episode can still be won: Sunday Picnic', async ({ page }) => {
+    await startEpisode(page, 'Sunday Picnic', 'Pip');
+    const items: number[][] = await page.evaluate(() => (window as any).__GAME__.useItems.getState().pickups.map((p: any) => p.position));
+    for (const [x, y, z] of items.slice(0, 3)) {
       await teleport(page, x + 0.3, z, Math.max(0.4, y + 0.3));
       await simWait(page, 0.25);
     }
-    await teleport(page, -16.9, 10.5, 0.4);
+    await teleport(page, -13, 29, 0.4);
     await expect(page.getByRole('dialog')).toContainText('You win', { timeout: 120_000 });
     await expect(page.getByRole('button', { name: 'Switch sides' })).toBeVisible();
   });

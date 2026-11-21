@@ -97,7 +97,7 @@ export const classicHouse: EnvironmentDefinition = {
     prop('piano', -6.55, 0.6, -P / 2),
     prop('pottedPlant', -7.0, 11.2, 0, { tall: true }),
     prop('cardboardBox', -7.3, 8.3, 0.3),
-    prop('mouseHome', -17.85, 10.5, P / 2),
+    prop('mouseHome', -17.85, 10.5, P / 2, undefined, 0, 'mouse-home-hole'),
     prop('wallFrame', -15.5, -1.84, 0, { color: '#f5b92e', w: 1.4, h: 1.0 }, 2.0),
     prop('wallFrame', -8.6, -1.84, 0, { color: '#e0452b', art: 'portrait', w: 0.9, h: 1.2 }, 2.1),
     // Dining room
@@ -173,6 +173,9 @@ export const classicHouse: EnvironmentDefinition = {
     { id: 'doghouse', label: 'Doghouse', center: [12, 0, 25], radius: 2.5 },
     { id: 'fridge', label: 'Fridge', center: [15.6, 0, 10.9], radius: 1.4 },
     { id: 'garden', label: 'Flower garden', center: [-13, 0, 29], radius: 5 },
+    { id: 'dining-room', label: 'Dining room', center: [0, 0, 5], radius: 5 },
+    { id: 'kitchen-room', label: 'Kitchen', center: [12, 0, 4.5], radius: 5 },
+    { id: 'yard-hole', label: 'Back-door mouse hole', center: [-3, 0, 11.15], radius: 0.95, marker: true },
   ],
   patrolPoints: [
     [-12, 6], [-9, -1], [0, 9], [0, 1], [11, 8], [11, 0], [-9, -10], [-3, -9], [9, -10], [4, -9],

@@ -26,7 +26,16 @@ export type CountedEvent =
   | 'taunt'
   | 'trapPlaced'
   | 'enterZone'
-  | 'enterRoom';
+  | 'enterRoom'
+  | 'found' // subject = the searcher who found someone
+  | 'broken' // subject = who broke an object
+  | 'bonked' // subject = who got hit by a falling object
+  | 'splat' // subject = who face-planted (door slam, wall, fall)
+  | 'slam' // subject = who slammed a door
+  | 'nearMiss'; // subject = the prey who escaped at the last second
+
+/** Live values the game session measures for 'metric' objectives. */
+export type MetricName = 'unseen' | 'hiddenSeconds' | 'seesOpponent';
 
 export type ObjectiveDef = { id: string; label: string; optional?: boolean } & (
   | { type: 'collect'; itemType: string; count: number }
@@ -34,16 +43,54 @@ export type ObjectiveDef = { id: string; label: string; optional?: boolean } & (
   | { type: 'survive'; seconds: number }
   | { type: 'count'; event: CountedEvent; who: Who; count: number; zoneId?: string; roomId?: string }
   | { type: 'avoid'; event: CountedEvent; who: Who; max: number }
+  | { type: 'metric'; metric: MetricName; target: number }
 );
 
 export type LoseCondition =
-  | { type: 'count'; event: CountedEvent; who: Who; max: number; reason: string }
+  | { type: 'count'; event: CountedEvent; who: Who; max: number; reason: string; zoneId?: string }
   | { type: 'opponentGoal'; itemType: string; count: number; zoneId: string; reason: string };
+
+export interface CutsceneShot {
+  /** Look-at target. Use `focus` to frame a cast member instead. */
+  target?: Vec3Tuple;
+  focus?: string;
+  /** Camera position; defaults to an orbit around the target. */
+  from?: Vec3Tuple;
+  duration: number;
+  caption?: string;
+}
+
+/**
+ * One mission in an episode's sequence. Stages run in order; objectives inside a stage only count
+ * events that happen after the stage starts.
+ */
+export interface StageDef {
+  id: string;
+  title: string;
+  brief: string;
+  objectives: ObjectiveDef[];
+  /** Extra lose conditions only active in this stage. */
+  lose?: LoseCondition[];
+  /** Optional stage timer: running out loses the episode with `timeoutReason`. */
+  timeLimit?: number;
+  timeoutReason?: string;
+  /** Where the player reappears if caught during this stage. */
+  checkpoint?: { position: Vec3Tuple; facing?: number };
+  /** Where the AI opponent reappears if caught during this stage. */
+  opponentRespawn?: { position: Vec3Tuple; facing?: number };
+  /** Actions fired when the stage begins (AI commands, doors, cutscenes...). */
+  onStart?: EpisodeAction[];
+}
 
 export interface SideConfig {
   /** One-line mission brief shown on the character card and at the start. */
   brief: string;
+  /** Mode summary on the mode select card ("Hide, sneak, outsmart"). */
+  modeSummary?: string;
   timeLimit: number;
+  /** Mission sequence. When present, the episode is won by completing every stage. */
+  stages?: StageDef[];
+  /** Flat objectives (or global bonus goals when `stages` is used). */
   objectives: ObjectiveDef[];
   lose: LoseCondition[];
   /** Starting item charges, e.g. { bananaPeel: 3 }. Defaults to the character's own. */
@@ -74,7 +121,24 @@ export type EpisodeAction =
   | { type: 'shake'; amount: number }
   | { type: 'door'; doorId: string; open: boolean }
   | { type: 'grant'; item: string; count: number }
-  | { type: 'sound'; id: string };
+  | { type: 'sound'; id: string }
+  | { type: 'npc'; characterId: string; command: NpcCommand }
+  | { type: 'teleport'; characterId: string; position: Vec3Tuple; facing?: number }
+  | { type: 'cutscene'; shots: CutsceneShot[] }
+  | { type: 'noise'; position: Vec3Tuple; radius: number; kind?: string }
+  | { type: 'showPickups'; group: string };
+
+/** Commands an episode can give to AI characters. */
+export type NpcCommand =
+  | { type: 'sleep'; at?: XZ }
+  | { type: 'wake' }
+  | { type: 'alert'; at?: XZ }
+  | { type: 'hunt'; seconds?: number }
+  | { type: 'mode'; mode: NonNullable<NpcOptions['mode']> }
+  | { type: 'hideIn'; roomId?: string; spotId?: string }
+  | { type: 'goto'; at: XZ }
+  | { type: 'runTo'; zoneId: string }
+  | { type: 'enrage'; seconds?: number };
 
 export interface ChaseEvent {
   id: string;
@@ -103,12 +167,15 @@ export interface EpisodeDefinition {
   extraProps?: PropPlacement[];
   cast: CastEntry[];
   sides: Record<string, SideConfig>;
-  pickups: { id: string; type: string; position: Vec3Tuple }[];
+  /** `group` pickups stay hidden until a `showPickups` action reveals them. */
+  pickups: { id: string; type: string; position: Vec3Tuple; group?: string }[];
+  /** Persistent environmental hazards (puddles, rakes) placed at the start. */
+  hazards?: { kind: string; position: Vec3Tuple }[];
   events: ChaseEvent[];
   audio: { music: MusicTheme; sounds?: Record<string, string> };
   ending: { win: Record<string, EndingCard>; lose: Record<string, EndingCard> };
-  /** Optional camera framing hint for the intro. */
-  intro?: { focus: XZ; text?: string };
+  /** Opening sequence: camera shots with captions, played before control is handed over. */
+  intro?: { shots: CutsceneShot[]; text?: string };
 }
 
 export type { GameEvent };

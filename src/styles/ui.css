@@ -289,3 +289,67 @@ kbd {
   .hud-mission .bonus { display: none; }
   .char-card .char-abilities { display: none; }
 }
+
+/* ------------------------------------------------------------------ */
+/* Part 2: missions, cutscenes, character-specific HUD                 */
+/* ------------------------------------------------------------------ */
+.hud-stage { margin: 0 0 0.35rem; }
+.stage-dots { list-style: none; margin: 0 0 0.2rem; padding: 0; display: flex; gap: 0.3rem; }
+.stage-dots li { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); background: var(--paper); }
+.stage-dots li.done { background: var(--good); }
+.stage-dots li.now { background: var(--mustard); transform: scale(1.25); }
+.stage-title { margin: 0; font-family: var(--font-display); font-size: var(--t-lg); line-height: 1; }
+.hud-clock.stage-timer { background: var(--butter); }
+
+.stage-banner {
+  position: absolute; left: 50%; top: 28%; transform: translateX(-50%) rotate(-1.5deg);
+  width: min(36rem, 90vw); text-align: center; padding: 1rem 1.4rem;
+  background: var(--paper); border: var(--line) solid var(--ink); border-radius: var(--r-card); box-shadow: 6px 6px 0 var(--ink);
+  animation: banner-in 3.6s var(--ease-pop) both;
+}
+.stage-banner p { margin: 0; }
+.stage-banner-kicker { font-weight: 600; color: var(--teal); }
+.stage-banner-title { font-family: var(--font-display); font-size: var(--t-3xl); line-height: 1; color: var(--tomato); -webkit-text-stroke: 0.04em var(--ink); paint-order: stroke fill; margin: 0.2rem 0 0.4rem !important; }
+.stage-banner-brief { line-height: 1.4; font-weight: 500; }
+@keyframes banner-in {
+  0% { transform: translateX(-50%) rotate(-8deg) scale(0.6); opacity: 0; }
+  8% { transform: translateX(-50%) rotate(-1.5deg) scale(1); opacity: 1; }
+  88% { opacity: 1; }
+  100% { transform: translateX(-50%) rotate(-1.5deg) translateY(-20px); opacity: 0; }
+}
+
+.cutscene { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
+.letterbox { position: absolute; left: 0; right: 0; height: 13%; background: var(--ink); animation: bars 400ms ease-out both; }
+.letterbox.top { top: 0; }
+.letterbox.bottom { bottom: 0; display: flex; align-items: center; justify-content: center; gap: 1.5rem; padding: 0 1rem; }
+@keyframes bars { from { transform: scaleY(0); } }
+.cut-caption { margin: 0; font-family: var(--font-display); font-size: var(--t-xl); color: var(--mustard); text-align: center; letter-spacing: 0.02em; }
+.cut-skip { margin: 0; color: var(--paper); font-size: var(--t-sm); opacity: 0.8; white-space: nowrap; }
+.hud:has(.cutscene) .hud-mission, .hud:has(.cutscene) .hud-bottom-left, .hud:has(.cutscene) .detect, .hud:has(.cutscene) .scent { opacity: 0; }
+
+.detect, .scent {
+  position: absolute; right: 0.8rem; bottom: calc(0.8rem + var(--safe-b)); display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.35rem 0.9rem 0.35rem 0.45rem; background: var(--paper); border: var(--line) solid var(--ink); border-radius: var(--r-pill);
+  box-shadow: var(--shadow-hard-sm); font-weight: 600; transition: background-color 200ms;
+}
+.detect svg { width: 30px; height: 30px; }
+.detect-hidden { background: var(--mint); }
+.detect-hidden svg circle { opacity: 0; }
+.detect-heard { background: var(--mustard); }
+.detect-seen { background: var(--tomato); color: var(--paper); animation: tick 0.6s steps(2) infinite; }
+.detect-seen svg path { fill: var(--paper); }
+.scent-dial { position: relative; width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--ink); background: var(--butter); display: grid; place-items: center; }
+.scent-dial svg { width: 22px; height: 22px; color: var(--tomato); }
+.scent-arrow { position: absolute; inset: -9px; transition: transform 150ms linear; }
+.scent-arrow::before { content: ''; position: absolute; left: 50%; top: 0; transform: translateX(-50%); border: 7px solid transparent; border-bottom: 11px solid var(--tomato); border-top: 0; filter: drop-shadow(0 0 0 var(--ink)); }
+@media (max-width: 760px) {
+  .detect, .scent { bottom: auto; top: calc(4rem + var(--safe-t)); }
+  .stage-banner { top: 22%; }
+  .stage-banner-title { font-size: var(--t-2xl); }
+  .touch .touch-buttons { bottom: calc(1rem + var(--safe-b)); }
+}
+
+.mode-summary { margin: 0; font-weight: 500; }
+.result-missions { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.result-missions li { font-size: var(--t-xs); font-weight: 600; padding: 0.15rem 0.55rem; border: 2px solid var(--ink); border-radius: var(--r-pill); background: #efe3c0; color: #8b7a6a; }
+.result-missions li.done { background: var(--mint); color: var(--ink); }

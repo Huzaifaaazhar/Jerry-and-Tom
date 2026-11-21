@@ -15,6 +15,15 @@ export interface HideSpotDef {
   exit: Vec3Tuple;
   archetypes: Archetype[];
   label: string;
+  searchable?: boolean;
+}
+
+export interface BreakableDef {
+  label: string;
+  hits: number;
+  archetypes: Archetype[];
+  /** Loose debris boxes spawned when it breaks (local positions). */
+  debris: Vec3Tuple[];
 }
 
 export interface KnockableDef {
@@ -34,6 +43,8 @@ export interface PropTypeDef {
   colliders: (p: PropPlacement) => BoxSpec[];
   hideSpot?: HideSpotDef;
   knockable?: KnockableDef;
+  /** Can be smashed apart (E repeatedly); its colliders disappear and debris tumbles out. */
+  breakable?: BreakableDef;
   /** Whole prop is a dynamic rigid body that characters can shove. */
   pushable?: { mass: number };
   /** Optional local point AI and pickups can use as an elevated surface. */

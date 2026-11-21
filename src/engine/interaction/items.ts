@@ -24,6 +24,10 @@ export interface TrapDef {
   sound: 'slip' | 'snap';
   radius: number;
   Render: ComponentType<{ sprung: boolean }>;
+  /** Environmental hazards stay put and re-arm (puddles, rakes). */
+  persistent?: boolean;
+  /** Only triggers on characters moving faster than this (e.g. slipping on a puddle). */
+  minSpeed?: number;
 }
 
 const itemDefs = new Map<string, ItemDef>();
@@ -38,6 +42,9 @@ export interface PickupInstance {
   type: string;
   position: Vec3Tuple;
   collected: boolean;
+  /** Pickups in a `group` stay hidden until an episode action reveals the group. */
+  group?: string;
+  hidden?: boolean;
 }
 
 export interface TrapInstance {
@@ -47,12 +54,15 @@ export interface TrapInstance {
   ownerId: string;
   placedAt: number;
   sprung: boolean;
+  persistent?: boolean;
 }
 
 interface LiveItems {
   pickups: PickupInstance[];
   traps: TrapInstance[];
   setPickups: (p: PickupInstance[]) => void;
+  revealGroup: (group: string) => void;
+  rearmTrap: (id: string) => void;
   collect: (id: string) => void;
   addTrap: (t: TrapInstance) => void;
   springTrap: (id: string) => void;
@@ -64,6 +74,8 @@ export const useItems = create<LiveItems>((set) => ({
   pickups: [],
   traps: [],
   setPickups: (pickups) => set({ pickups }),
+  revealGroup: (group) => set((s) => ({ pickups: s.pickups.map((p) => (p.group === group ? { ...p, hidden: false } : p)) })),
+  rearmTrap: (id) => set((s) => ({ traps: s.traps.map((t) => (t.id === id ? { ...t, sprung: false } : t)) })),
   collect: (id) => set((s) => ({ pickups: s.pickups.map((p) => (p.id === id ? { ...p, collected: true } : p)) })),
   addTrap: (t) => set((s) => ({ traps: [...s.traps, t] })),
   springTrap: (id) => set((s) => ({ traps: s.traps.map((t) => (t.id === id ? { ...t, sprung: true } : t)) })),

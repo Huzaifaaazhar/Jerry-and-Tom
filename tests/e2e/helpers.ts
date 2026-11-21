@@ -8,6 +8,40 @@ export async function startEpisode(page: Page, episodeTitle: string, character: 
   await page.getByRole('radio', { name: new RegExp(character) }).click();
   await page.getByRole('button', { name: new RegExp(`Play as ${character}`) }).click();
   await page.waitForFunction(() => (window as any).__GAME__?.world?.player?.grounded === true, null, { timeout: 90_000 });
+  // Skip the intro cutscene if there is one.
+  await page.keyboard.press('Space');
+  await page.waitForFunction(() => !(window as any).__GAME__.world.cutscene, null, { timeout: 90_000 });
+}
+
+export const stageIndex = (page: Page) => page.evaluate(() => (window as any).__GAME__.useGame.getState().hud.stage?.index ?? -1);
+
+export async function waitStage(page: Page, index: number) {
+  await page.waitForFunction(
+    (i) => {
+      const g = (window as any).__GAME__;
+      return (g.useGame.getState().hud.stage?.index ?? -1) >= i || g.useGame.getState().screen === 'results';
+    },
+    index,
+    { timeout: 120_000 },
+  );
+  await page.waitForFunction(() => !(window as any).__GAME__.world.cutscene, null, { timeout: 90_000 });
+}
+
+/** Put the player next to the AI mouse and press grab until it counts. */
+export async function grabMouse(page: Page) {
+  for (let i = 0; i < 15; i++) {
+    await page.evaluate(() => {
+      const g = (window as any).__GAME__;
+      const pip = g.world.agents.get('pip');
+      const p = g.world.player;
+      p.body.setTranslation({ x: pip.position.x + 0.5, y: pip.position.y + 0.6, z: pip.position.z }, true);
+      p.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+    });
+    await page.keyboard.press('KeyE');
+    await page.waitForTimeout(250);
+    if (await page.evaluate(() => (window as any).__GAME__.world.agents.get('pip').status.respawnAt !== null)) return true;
+  }
+  return false;
 }
 
 export const player = (page: Page) =>

@@ -27,6 +27,8 @@ export interface HideSpot {
   exit: THREE.Vector3;
   archetypes: Archetype[];
   occupant: string | null;
+  /** False for places hunters can't reach into (a mouse's own hole). */
+  searchable?: boolean;
 }
 
 export interface DoorHandle {
@@ -34,6 +36,8 @@ export interface DoorHandle {
   center: THREE.Vector3;
   open: boolean;
   setOpen: (open: boolean, agentId?: string) => void;
+  /** Slam shut: anyone hunting through the doorway gets a face full of door. */
+  slam: (agentId: string) => void;
 }
 
 class InteractionRegistry {

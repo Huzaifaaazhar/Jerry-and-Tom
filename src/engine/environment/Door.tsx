@@ -33,7 +33,7 @@ export function Door({ id, wall, opening }: { id: string; wall: WallSpec; openin
   );
   const center = useMemo(() => new THREE.Vector3(wall.from[0] + dx * opening.at, 1, wall.from[1] + dz * opening.at), [wall, dx, dz, opening]);
   const flapWorld = useMemo(() => new THREE.Vector3(center.x, 0.3, center.z), [center]);
-  const state = useRef({ open: !!opening.startOpen, angle: opening.startOpen ? OPEN_ANGLE * (opening.swing ?? 1) : 0, flap: 0 });
+  const state = useRef({ open: !!opening.startOpen, angle: opening.startOpen ? OPEN_ANGLE * (opening.swing ?? 1) : 0, flap: 0, slamUntil: 0, autoLock: 0 });
   const q = useMemo(() => new THREE.Quaternion(), []);
   const up = useMemo(() => new THREE.Vector3(0, 1, 0), []);
 
@@ -46,17 +46,46 @@ export function Door({ id, wall, opening }: { id: string; wall: WallSpec; openin
       world.emitNoise(center, 5, 'door', agentId);
       world.events.emit({ type: 'door', doorId: id, open, agentId });
     };
-    const handle = { id, center, open: state.current.open, setOpen };
+    const slam = (agentId: string) => {
+      if (!state.current.open) return;
+      state.current.slamUntil = world.time + 0.6;
+      state.current.autoLock = world.time + 2.5; // AI won't immediately reopen it
+      setOpen(false, agentId);
+      audio.play('crash', { gain: 0.6 });
+      world.events.emit({ type: 'slam', agentId, doorId: id });
+      // Whoever was charging through the doorway eats the door.
+      for (const a of world.agents.values()) {
+        if (a.id === agentId || a.archetype === 'prey' || a.status.hiddenIn) continue;
+        const d = Math.hypot(a.position.x - center.x, a.position.z - center.z);
+        const speed = Math.hypot(a.velocity.x, a.velocity.z);
+        if (d < 2.4 && (speed > 1.5 || d < 1.2)) {
+          world.stun(a, 'splat', 2.2);
+          world.flashExpression(a, 'dizzy', 2.2);
+          a.body?.setLinvel({ x: -a.velocity.x * 0.3, y: 2, z: -a.velocity.z * 0.3 }, true);
+          audio.play('pummel', { gain: 0.7 });
+          world.events.emit({ type: 'splat', agentId: a.id, cause: 'door', position: a.position.toArray() as [number, number, number] });
+        }
+      }
+    };
+    const handle = { id, center, open: state.current.open, setOpen, slam };
     const offDoor = interactions.registerDoor(handle);
     const offInt = interactions.register({
       id: `door-${id}`,
       kind: 'door',
       position: center,
       radius: 1.5,
-      prompt: (a) => (a.archetype === 'prey' ? null : state.current.open ? 'Close door' : 'Open door'),
+      prompt: (a) => {
+        if (a.archetype === 'prey') {
+          if (!state.current.open) return null;
+          const hunterNear = [...world.agents.values()].some((h) => h.archetype === 'hunter' && h.position.distanceTo(center) < 7);
+          return hunterNear ? 'Slam the door!' : null;
+        }
+        return state.current.open ? 'Close door' : 'Open door';
+      },
       interact: (a) => {
-        setOpen(!state.current.open, a.id);
         world.playOneShot(a, 'interact', 0.35);
+        if (a.archetype === 'prey') slam(a.id);
+        else setOpen(!state.current.open, a.id);
       },
     });
     return () => {
@@ -68,7 +97,7 @@ export function Door({ id, wall, opening }: { id: string; wall: WallSpec; openin
   useFrame((_, dt) => {
     const s = state.current;
     // AI hunters / guardians push doors open as they walk through.
-    if (!s.open) {
+    if (!s.open && world.time > s.autoLock) {
       for (const a of world.agents.values()) {
         if (a.isPlayer || a.archetype === 'prey' || a.status.hiddenIn) continue;
         if (a.position.distanceTo(center) < 1.9 && a.velocity.lengthSq() > 0.5) {
@@ -78,7 +107,7 @@ export function Door({ id, wall, opening }: { id: string; wall: WallSpec; openin
       }
     }
     const target = s.open ? OPEN_ANGLE * (opening.swing ?? 1) : 0;
-    s.angle = dampAngle(s.angle, target, 7, dt);
+    s.angle = dampAngle(s.angle, target, s.slamUntil > world.time ? 22 : 7, dt);
     q.setFromAxisAngle(up, baseYaw + s.angle);
     body.current?.setNextKinematicRotation(q);
     // Pet flap swings when someone small passes.

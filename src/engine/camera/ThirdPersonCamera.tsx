@@ -22,7 +22,7 @@ export const cameraState = {
   trauma: 0,
   lastLook: 0,
   /** Optional scripted override (ending sequence / intro). */
-  cinematic: null as null | { target: THREE.Vector3; orbitSpeed: number; distance: number; height: number },
+  cinematic: null as null | { target: THREE.Vector3; orbitSpeed: number; distance: number; height: number; from?: THREE.Vector3 },
 };
 
 export function addTrauma(v: number) {
@@ -38,6 +38,8 @@ export function ThirdPersonCamera() {
   const smoothTarget = useRef<THREE.Vector3 | null>(null);
   const dist = useRef(5);
   const fov = useRef(62);
+  /** Extra pitch applied automatically when the camera is squeezed against a wall. */
+  const boost = useRef(0);
 
   useEffect(() => {
     const off = [
@@ -63,6 +65,12 @@ export function ThirdPersonCamera() {
     const cam = camera as THREE.PerspectiveCamera;
     const cine = cameraState.cinematic;
 
+    if (cine && cine.from) {
+      target.copy(cine.target);
+      cam.position.lerp(cine.from, dampFactor(2.5, dt));
+      cam.lookAt(target);
+      return;
+    }
     if (cine) {
       cameraState.yaw += cine.orbitSpeed * dt;
       target.copy(cine.target);
@@ -106,14 +114,18 @@ export function ThirdPersonCamera() {
     const t = smoothTarget.current;
 
     const wantDist = def.camera.distance * cameraState.zoom;
-    const cp = Math.cos(cameraState.pitch);
-    const dir = tmp.set(Math.sin(cameraState.yaw) * cp, Math.sin(cameraState.pitch), Math.cos(cameraState.yaw) * cp).normalize();
+    const pitch = Math.min(1.35, cameraState.pitch + boost.current);
+    const cp = Math.cos(pitch);
+    const dir = tmp.set(Math.sin(cameraState.yaw) * cp, Math.sin(pitch), Math.cos(cameraState.yaw) * cp).normalize();
 
     // Camera collision: spherecast-ish with a few rays.
     let allowed = wantDist;
     const ray = new rapier.Ray({ x: t.x, y: t.y, z: t.z }, { x: dir.x, y: dir.y, z: dir.z });
     const hit = rworld.castRay(ray, wantDist + 0.3, true, undefined, groups.ray);
     if (hit) allowed = Math.max(0.35, hit.timeOfImpact - 0.3);
+    // Squeezed against a wall? Swing up over the character instead of staring into its face.
+    const boostTarget = allowed < wantDist * 0.45 ? 0.85 : allowed > wantDist * 0.85 ? 0 : boost.current;
+    boost.current += (boostTarget - boost.current) * dampFactor(3, dt);
     if (allowed < dist.current) dist.current = allowed;
     else dist.current += (allowed - dist.current) * dampFactor(3.5, dt);
 
