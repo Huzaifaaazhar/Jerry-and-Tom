@@ -47,12 +47,15 @@ export async function waitStage(page: Page, index: number) {
 
 /** Put the player next to the AI mouse and press grab until it counts. */
 export async function grabMouse(page: Page) {
-  for (let i = 0; i < 15; i++) {
+  for (let i = 0; i < 30; i++) {
+    // If the mouse is hiding, search its hiding place first (as a real player would).
     await page.evaluate(() => {
       const g = (window as any).__GAME__;
       const pip = g.world.agents.get('pip');
       const p = g.world.player;
-      p.body.setTranslation({ x: pip.position.x + 0.5, y: pip.position.y + 0.6, z: pip.position.z }, true);
+      const spot = pip.status.hiddenIn ? g.interactions.hideSpots.get(pip.status.hiddenIn) : null;
+      const at = spot ? spot.exit : pip.position;
+      p.body.setTranslation({ x: at.x + (spot ? 0 : 0.5), y: Math.max(at.y, 0.3) + 0.6, z: at.z }, true);
       p.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
     });
     await page.keyboard.press('KeyE');

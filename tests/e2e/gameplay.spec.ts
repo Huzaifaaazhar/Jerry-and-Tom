@@ -67,6 +67,12 @@ test.describe('core gameplay', () => {
 
   test('Episode Two can be completed as the cat', async ({ page }) => {
     await startEpisode(page, 'Sunday Picnic', 'Barnaby');
+    // Mission flow only: keep Brick from walloping the cat (guardian AI is tested elsewhere).
+    await page.evaluate(() => {
+      const G = (window as any).__GAME__;
+      G.world.player.status.invulnerableUntil = 1e9;
+      G.world.agents.get('pip').charges.bananaPeel = 0; // no slips while we check the mission flow
+    });
     await teleport(page, 2.5, 25, 1.2);
     await waitStage(page, 1);
     await page.evaluate(() => {

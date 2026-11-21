@@ -71,7 +71,8 @@ export function performCatch(hunter: AgentState, prey: AgentState) {
   world.playOneShot(prey, 'react', 1.0);
   world.flashExpression(prey, 'scared', 1.2);
   prey.status.respawnAt = world.time + 1.3;
-  prey.status.invulnerableUntil = Math.max(prey.status.invulnerableUntil, world.time + 5.5);
+  // Safe while respawning plus a short grace period afterwards (AI hunters also back off on their own).
+  prey.status.invulnerableUntil = Math.max(prey.status.invulnerableUntil, world.time + 2.8);
   audio.play('caught');
   audio.play(getCharacter(prey.characterId).voice.sound, { pitch: getCharacter(prey.characterId).voice.pitch });
   world.events.emit({ type: 'caught', catcherId: hunter.id, targetId: prey.id, position: prey.position.toArray() as [number, number, number] });

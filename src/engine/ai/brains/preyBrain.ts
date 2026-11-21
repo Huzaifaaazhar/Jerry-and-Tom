@@ -142,6 +142,20 @@ export class PreyBrain implements Brain {
     // ----- Scripted: run for it -----
     if (this.scripted?.mode === 'runHome') {
       const zone = ctx.env.zones.find((z) => z.id === (this.scripted as { zoneId: string }).zoneId);
+      // Hunter right on top of us or blocking the way: juke sideways before resuming the dash.
+      if (zone && threat && !threatStunned && dThreat < 3.2 && now > this.fleeUntil - 1.3) {
+        const blocking = segmentDistance([threat.position.x, threat.position.z], [self.position.x, self.position.z], [zone.center[0], zone.center[2]]) < 2.5;
+        if (blocking || dThreat < 2) {
+          this.pickFleeGoal(ctx, threat);
+          this.fleeUntil = now + 1.3;
+        }
+      }
+      if (zone && this.fleeGoal && now < this.fleeUntil) {
+        this.follow.steer(self, nav, this.fleeGoal, 0.4, 0.4);
+        it.sprint = self.stamina > 0.03;
+        self.anim.expression = 'scared';
+        return;
+      }
       if (zone) {
         this.follow.steer(self, nav, [zone.center[0], zone.center[2]], 0.5, 0.25);
         it.sprint = self.stamina > 0.03;
