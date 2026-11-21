@@ -120,30 +120,51 @@ function furTexture(look: ProceduralLook, part: 'body' | 'head') {
     if (!look.stripes) return;
     g.fillStyle = look.furDark;
     if (part === 'body') {
-      // Bands across the back (u 0.55..0.95), tapering towards the sides.
-      for (let k = 0; k < 6; k++) {
-        const y = 18 + k * 17;
+      // Bold bands wrapping the back and sides (u ~0.4..1.05), tapering towards the belly.
+      for (let k = 0; k < 7; k++) {
+        const y = 10 + k * 16;
         g.beginPath();
-        g.moveTo(150, y);
-        g.quadraticCurveTo(192, y - 6, 238, y + 1);
-        g.quadraticCurveTo(192, y + 7, 150, y + 4);
+        g.moveTo(104, y + 2);
+        g.quadraticCurveTo(150, y - 8, 192, y - 2);
+        g.quadraticCurveTo(234, y - 8, 256, y);
+        g.lineTo(256, y + 9);
+        g.quadraticCurveTo(234, y + 3, 192, y + 9);
+        g.quadraticCurveTo(150, y + 4, 104, y + 6);
+        g.fill();
+        g.beginPath();
+        g.moveTo(0, y);
+        g.quadraticCurveTo(14, y - 3, 26, y + 2);
+        g.lineTo(26, y + 7);
+        g.quadraticCurveTo(14, y + 3, 0, y + 8);
         g.fill();
       }
     } else {
       // Forehead marks above the eyes (u ~0.25) and stripes over the back of the skull.
-      for (const dx of [-10, 0, 10]) {
+      for (const dx of [-14, -5, 5, 14]) {
         g.beginPath();
-        g.moveTo(64 + dx - 3, 8);
-        g.lineTo(64 + dx + 3, 8);
-        g.lineTo(64 + dx, 34);
+        g.moveTo(64 + dx - 4, 4);
+        g.lineTo(64 + dx + 4, 4);
+        g.lineTo(64 + dx, 38);
         g.fill();
       }
-      for (let k = 0; k < 4; k++) {
-        const y = 14 + k * 14;
+      // Cheek stripes either side of the face.
+      for (const cx of [30, 98]) {
+        for (let k = 0; k < 2; k++) {
+          g.beginPath();
+          g.moveTo(cx - 12, 62 + k * 10);
+          g.quadraticCurveTo(cx, 58 + k * 10, cx + 12, 63 + k * 10);
+          g.lineTo(cx + 12, 67 + k * 10);
+          g.quadraticCurveTo(cx, 63 + k * 10, cx - 12, 67 + k * 10);
+          g.fill();
+        }
+      }
+      for (let k = 0; k < 5; k++) {
+        const y = 8 + k * 13;
         g.beginPath();
-        g.moveTo(160, y);
-        g.quadraticCurveTo(192, y - 4, 224, y);
-        g.quadraticCurveTo(192, y + 6, 160, y + 3);
+        g.moveTo(140, y);
+        g.quadraticCurveTo(192, y - 6, 244, y);
+        g.lineTo(244, y + 6);
+        g.quadraticCurveTo(192, y + 1, 140, y + 6);
         g.fill();
       }
     }

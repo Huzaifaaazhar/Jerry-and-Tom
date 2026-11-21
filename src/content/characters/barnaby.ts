@@ -1,10 +1,10 @@
 import type { CharacterDefinition } from '@engine/characters/types';
 
-/** Barnaby - a lanky ginger tabby with a blue bow tie and big plans. The house hunter. */
+/** Barnaby - a lanky silver tabby with bold charcoal stripes, amber eyes and a blue bow tie. The house hunter. */
 const barnaby: CharacterDefinition = {
   id: 'barnaby',
   name: 'Barnaby',
-  species: 'Ginger tabby cat',
+  species: 'Silver tabby cat',
   archetype: 'hunter',
   tagline: 'Long legs, longer schemes.',
   description: 'Sprints, pounces and lays mousetraps. Can open doors and search every hiding place - but he really should not wake the dog.',
@@ -15,16 +15,16 @@ const barnaby: CharacterDefinition = {
   perception: { viewDistance: 15, fov: 120, hearing: 1 },
   voice: { sound: 'yowl', pitch: 1 },
   camera: { distance: 5.4, height: 1.25 },
-  ui: { color: '#e8893a', accent: '#2f6fb0' },
+  ui: { color: '#a9b0b6', accent: '#2f6fb0' },
   look: {
     height: 1.55,
-    fur: '#e8893a',
-    furDark: '#b85a1f',
-    belly: '#fff1d6',
-    muzzle: '#fff1d6',
-    nose: '#e9757a',
-    innerEar: '#f4b0a8',
-    iris: '#5fbf4a',
+    fur: '#9ea5ab',
+    furDark: '#3b3f44',
+    belly: '#aeb4b9',
+    muzzle: '#c3c8cc',
+    nose: '#b8646c',
+    innerEar: '#d99ba0',
+    iris: '#e8a33a',
     stripes: true,
     legLength: 0.36,
     torso: { w: 0.15, h: 0.19, d: 0.13, belly: 0.05 },

@@ -1,6 +1,6 @@
 import type { CharacterDefinition } from '@engine/characters/types';
 
-/** Pip - a pocket-sized, cheese-obsessed house mouse in a red scarf. Quick, cheeky, unflappable. */
+/** Pip - a pocket-sized, chocolate-brown house mouse with a white face and a red scarf. Quick, cheeky, unflappable. */
 const pip: CharacterDefinition = {
   id: 'pip',
   name: 'Pip',
@@ -15,13 +15,13 @@ const pip: CharacterDefinition = {
   perception: { viewDistance: 12, fov: 220, hearing: 1.2 },
   voice: { sound: 'squeak', pitch: 1.1 },
   camera: { distance: 3.1, height: 0.6 },
-  ui: { color: '#a99a8f', accent: '#e0452b' },
+  ui: { color: '#a8714a', accent: '#e0452b' },
   look: {
     height: 0.52,
-    fur: '#a99a8f',
-    furDark: '#7d6f66',
-    belly: '#fbeee0',
-    muzzle: '#fbeee0',
+    fur: '#5e3b2a',
+    furDark: '#3f261a',
+    belly: '#f7f1ea',
+    muzzle: '#f7f1ea',
     nose: '#ef8a9a',
     innerEar: '#f2a3b0',
     iris: '#3a2a20',
