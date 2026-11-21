@@ -3,7 +3,9 @@
 | Layer | Tool | What it covers |
 | --- | --- | --- |
 | Unit | Vitest (`npm test`) | Wall splitting & room faces, nav grid (mouse holes fit mice, not cats), A* + smoothing, mission runtime (objectives, lose conditions, timer, chase events), input mapping, **episode validation** for every registered episode |
-| Browser gameplay | Playwright (`npm run e2e`) | Menus → match, keyboard movement + jump, wall collisions, hiding, doors, catching, winning to the results screen, switching characters |
+| Unit (stages) | Vitest | Stage order, stage-local counting, stage timers and zone-filtered lose rules, metric objectives, reach-while-standing, bonus goals |
+| Browser gameplay | Playwright (`npm run e2e`) | Menus → match, keyboard movement + jump, wall collisions, hiding, doors, catching, winning, switching characters, pause/restart |
+| Episode One | Playwright (`tests/e2e/episode-one.spec.ts`) | All six missions completable in **both** modes; cat AI wakes to a crash and investigates; cat AI detects and catches an exposed mouse; mouse AI flees/hides; door-slam and mousetrap-backfire gags |
 
 Notes
 

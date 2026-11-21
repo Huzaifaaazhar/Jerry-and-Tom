@@ -52,6 +52,23 @@ input -> player intent -> AI brains -> abilities -> locomotion -> Rapier step
 | Audio | `engine/audio` | Procedural SFX & music; file overrides per sound id |
 | Episode | `engine/episode` | Contract, registry, runtime, validation |
 
+### AI state machines (Part 2)
+
+| Character | States | Notable behaviour |
+| --- | --- | --- |
+| Hunter (cat) | sleep, patrol, investigate, chase, enraged, intercept, search, flee | Sight cone + line of sight, hearing, "sniff" hints, predicts exits at mouse holes, rummages through hiding places, jumps visible peels, gets furious after a gag, loses track after breaking line of sight |
+| Prey (mouse) | forage, flee, hide, taunt, home + scripted stayHidden / runHome / goto | Prefers mouse-only routes, re-routes around the cat, slams doors, topples objects onto the cat, drops peels, taunts a dizzy cat |
+| Guardian (dog) | sleep, patrol/roam, alert, warn, chase, satisfied, return, zoomies | Wakes to crashes or a careless cat, growls before charging, intervenes in chases, friendly to the mouse, random naps and zoomies |
+
+Episodes steer AI through `NpcCommand`s; brains stay generic.
+
+### Cartoon gag system
+
+Gags are ordinary rules with stun kinds and animations: `slip` (peels, puddles), `ouch` (a cat in its
+own mousetrap), `splat` (door slams, pounce into a wall, big falls), `dizzy` (rakes, falling
+objects), `pummel` (the dog). Each emits an event, so missions, toasts, camera shake and AI rage
+react without knowing about each other.
+
 ## Options considered
 
 ### A: Data-driven episodes on a shared engine (chosen)

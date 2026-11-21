@@ -22,3 +22,23 @@
    who collect it. In `npm run dev`, the same validation prints warnings in the console.
 
 No engine, HUD, camera or controller changes are needed for any of the above.
+
+## Mission sequences (stages)
+
+For a story episode, give each side a `stages` array instead of flat objectives (see
+`ep01-midnight-snack.ts`). Each stage has:
+
+- `title`, `brief` - shown on the mission banner and HUD tracker.
+- `objectives` - only events that happen *after the stage starts* count toward them. Besides
+  `collect` / `reach` / `count` / `avoid`, stages can use live `metric` objectives:
+  `unseen` (seconds since an AI hunter last saw the player), `hiddenSeconds` (continuous time
+  hidden) and `seesOpponent` (the player has eyes on the opponent).
+- `onStart` actions - the episode's director: `npc` commands (`sleep`, `wake`, `alert`, `hunt`,
+  `hideIn`, `runTo`, `goto`, `enrage`, `mode`), `teleport`, `cutscene` shots, `noise`,
+  `showPickups` (reveal a pickup `group`), `door`, `music`, `toast`, `shake`, `grant`.
+- `checkpoint` / `opponentRespawn` - where characters reappear after a catch in this stage.
+- `timeLimit` + `timeoutReason`, and stage-only `lose` rules (e.g. the AI reaching a zone).
+
+The side's flat `objectives` become bonus goals. `intro.shots` plays an opening cutscene.
+`hazards` places persistent environmental traps (`puddle`, `rake`); `extraProps` can add
+breakable obstacles (`barricade`) and climbing aids (`bookStack`).
