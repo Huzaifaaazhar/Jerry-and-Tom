@@ -5,7 +5,7 @@
  * Nothing in here is episode-specific: everything comes from the EpisodeDefinition.
  */
 import { useEffect, useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Physics, useRapier } from '@react-three/rapier';
 import * as THREE from 'three';
 import type { EpisodeDefinition, EpisodeAction } from '../episode/types';
@@ -222,6 +222,10 @@ function Simulation({
 }) {
   const rapier = useRapier();
   physicsRef.current = rapier;
+  const gl = useThree((s) => s.gl);
+  useEffect(() => {
+    (window as unknown as { __GAME__: Record<string, unknown> }).__GAME__.renderer = gl;
+  }, [gl]);
   const hudTimer = useRef(0);
   const ending = useRef<{ at: number; done: boolean } | null>(null);
   const prompt = useRef<string | null>(null);

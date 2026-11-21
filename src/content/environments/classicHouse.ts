@@ -182,10 +182,10 @@ export const classicHouse: EnvironmentDefinition = {
     night: {
       sky: '#18243f',
       fog: '#18243f',
-      ambient: 0.55,
-      hemi: ['#8a9fd6', '#4a3420', 0.9],
-      sun: { color: '#b6c8ff', intensity: 1.1, position: [-24, 40, 34] },
-      lamps: 1,
+      ambient: 0.42,
+      hemi: ['#7f95d4', '#3a2818', 0.75],
+      sun: { color: '#aabdff', intensity: 1.0, position: [-24, 40, 34] },
+      lamps: 1.25,
       exposure: 1.05,
     },
     day: {
