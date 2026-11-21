@@ -170,6 +170,8 @@ export function GameSession({ episode, playerCharacterId, runId, startStage = 0 
       if (!isPlayer) {
         const options: NpcOptions = { ...(entry.npc ?? {}), ...(entry.playable ? side.opponentAi : {}) };
         const brain = def.archetype === 'hunter' ? new HunterBrain() : def.archetype === 'prey' ? new PreyBrain() : new GuardianBrain();
+        // Report the configured starting state immediately (HUD/tests read it before the first AI tick).
+        agent.aiState = options.mode === 'sleep' ? 'sleep' : def.archetype === 'guardian' ? 'patrol' : def.archetype === 'prey' ? 'forage' : 'patrol';
         npcs.push({ agent, def, brain, options, size: def.body.radius <= 0.22 ? 'small' : 'large' });
       }
     }

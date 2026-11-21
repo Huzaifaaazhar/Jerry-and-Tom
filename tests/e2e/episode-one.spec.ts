@@ -50,7 +50,7 @@ test.describe('Episode One - mouse mode', () => {
 
   test('the cat AI wakes up to a crash and investigates', async ({ page }) => {
     await startEpisode(page, 'Midnight Snack', 'Pip');
-    expect((await agent(page, 'barnaby')).ai).toBe('sleep');
+    await expect.poll(async () => (await agent(page, 'barnaby')).ai).toBe('sleep');
     await teleport(page, -12.3, 4.6, 0.5); // next to the side table vase
     await expect.poll(async () => (await player(page)).prompt).toBe('Knock over the vase');
     await page.keyboard.press('KeyE');
