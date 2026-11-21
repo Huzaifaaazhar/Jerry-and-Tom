@@ -42,6 +42,7 @@ export class PreyBrain implements Brain {
     it.sprint = it.sneak = it.jump = it.interact = it.ability = it.trap = false;
     self.anim.lookAt = null;
     if (world.isStunned(self) || self.status.respawnAt !== null) return;
+    if (!self.aiState) self.aiState = this.state;
 
     const threat = this.nearestHunter(self);
     const dThreat = threat ? threat.position.distanceTo(self.position) : Infinity;

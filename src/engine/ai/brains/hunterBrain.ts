@@ -29,6 +29,8 @@ export class HunterBrain implements Brain {
   private grabAt = 0;
   private lookAt = new THREE.Vector3();
   private nextTrap = 8;
+  private nextSniff = 12;
+  private ignoreUntil = 0;
 
   private set(s: S, ctx: BrainContext) {
     if (this.state === s) return;
@@ -46,6 +48,7 @@ export class HunterBrain implements Brain {
     it.sprint = it.sneak = it.jump = it.interact = it.ability = it.trap = false;
     self.anim.lookAt = null;
     const skill = ctx.options.skill ?? 0.7;
+    if (!self.aiState) self.aiState = this.state;
 
     if (world.isStunned(self)) {
       self.aiState = 'stunned';
@@ -65,7 +68,7 @@ export class HunterBrain implements Brain {
       return;
     }
 
-    const blind = world.time < (ctx.options.grace ?? 5);
+    const blind = world.time < (ctx.options.grace ?? 5) || world.time < this.ignoreUntil;
     const sees = prey && !blind ? canSee(ctx.physics, self, def, prey) : false;
     if (sees && prey) {
       if (this.state !== 'chase' && this.state !== 'enraged') {
@@ -79,7 +82,7 @@ export class HunterBrain implements Brain {
     }
 
     // Hearing: taunts enrage, crashes and running feet draw attention.
-    const noise = hear(self, def, (n) => n.sourceId !== undefined && world.agents.get(n.sourceId)?.archetype !== 'hunter');
+    const noise = now < this.ignoreUntil ? null : hear(self, def, (n) => n.sourceId !== undefined && world.agents.get(n.sourceId)?.archetype !== 'hunter');
     if (noise && this.state !== 'chase' && this.state !== 'enraged') {
       this.goal = [noise.position.x, noise.position.z];
       if (noise.kind === 'taunt') {
@@ -118,7 +121,14 @@ export class HunterBrain implements Brain {
             this.grabAt = 0;
             performCatch(self, g);
             this.set('patrol', ctx);
-            this.wait = 1.5;
+            this.wait = 1.2;
+            // Sporting cartoon rules: no spawn camping. Wander off and give the prey a head start.
+            this.ignoreUntil = now + 7;
+            this.nextSniff = now + 14;
+            const pts = env.patrolPoints;
+            let far = pts[0];
+            for (const p of pts) if (Math.hypot(p[0] - g.position.x, p[1] - g.position.z) > Math.hypot(far[0] - g.position.x, far[1] - g.position.z) && rng() < 0.7) far = p;
+            this.goal = far;
           }
         } else this.grabAt = 0;
         if (!sees && now - this.lastSeen > 0.8) {
@@ -181,6 +191,15 @@ export class HunterBrain implements Brain {
         if (this.wait > 0) {
           this.wait -= ctx.dt;
           break;
+        }
+        // Cartoon "sniff": every so often the hunter catches a whiff of the prey's area.
+        if (prey && now > this.nextSniff && !prey.status.hiddenIn) {
+          this.nextSniff = now + 16 - skill * 8 + rng() * 6;
+          const a = rng() * Math.PI * 2;
+          const r = 2 + (1 - skill) * 5;
+          this.goal = nav.nearestFree(prey.position.x + Math.cos(a) * r, prey.position.z + Math.sin(a) * r, 3) ?? this.goal;
+          world.playOneShot(self, 'interact', 0.5);
+          self.anim.expression = 'smug';
         }
         if (!this.goal) {
           const pts = env.patrolPoints;

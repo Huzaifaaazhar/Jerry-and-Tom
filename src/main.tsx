@@ -8,6 +8,13 @@ import './styles/theme.css';
 import './styles/ui.css';
 import './content';
 import { loadModelManifest } from '@engine/characters/registry';
+import { allEpisodes } from '@engine/episode/registry';
+import { validateEpisode } from '@engine/episode/validate';
+
+if (import.meta.env.DEV) {
+  // Catch broken episode content early while authoring.
+  for (const ep of allEpisodes()) for (const err of validateEpisode(ep)) console.warn(`[episode] ${err}`);
+}
 import { App } from './App';
 
 void loadModelManifest().finally(() => {

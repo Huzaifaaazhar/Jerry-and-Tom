@@ -230,7 +230,8 @@ function Simulation({
     const store = useGame.getState();
     store.pruneToasts();
     if (world.paused) return;
-    const dt = Math.min(rawDt, 1 / 20);
+    // Keep the game clock in step with Rapier's accumulator (which clamps at 0.5s).
+    const dt = Math.min(rawDt, 0.25);
     world.time += dt;
     updateInput(dt);
     const player = world.player;

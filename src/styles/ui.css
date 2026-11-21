@@ -252,7 +252,7 @@ kbd {
 .touch { position: absolute; inset: 0; z-index: 5; }
 .touch-left { position: absolute; left: 0; bottom: 0; width: 45%; height: 60%; touch-action: none; }
 .touch-right { position: absolute; right: 0; top: 0; width: 55%; height: 100%; touch-action: none; }
-.touch-hint { position: absolute; left: 2rem; bottom: calc(2rem + var(--safe-b)); margin: 0; color: var(--paper); font-weight: 600; opacity: 0.7; text-shadow: 1px 1px 0 var(--ink); }
+.touch-hint { position: absolute; left: 1rem; bottom: calc(9.5rem + var(--safe-b)); margin: 0; color: var(--paper); font-weight: 600; opacity: 0.7; text-shadow: 1px 1px 0 var(--ink); }
 .stick { position: fixed; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%; border: var(--line) solid var(--ink); background: rgba(255, 246, 220, 0.35); }
 .stick-knob { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; background: var(--mustard); border: var(--line) solid var(--ink); }
 .touch-buttons { position: absolute; right: 1rem; bottom: calc(1rem + var(--safe-b)); display: grid; grid-template-columns: repeat(3, auto); gap: 0.6rem; direction: rtl; z-index: 6; }
@@ -272,7 +272,14 @@ kbd {
   .title-card { font-size: var(--t-2xl); }
   .char-stage { inset: 6% 0 40% 0; }
   .char-card { justify-self: stretch; max-width: none; }
-  .hud-mission { max-width: 13rem; font-size: var(--t-xs); }
+  .hud-mission { top: calc(4rem + var(--safe-t)); max-width: min(15rem, 62vw); padding: 0.4rem 0.6rem; }
+  .hud-mission ul { font-size: var(--t-xs); }
+  .hud-mission .bonus { display: none; }
+  .hud-clock { left: 0.8rem; transform: none; font-size: var(--t-lg); }
+  .hud-clock.low { animation: none; }
+  .chase-stamp { left: auto; right: -5.5rem; top: 0.1rem; transform: rotate(-6deg); }
+  .lives .life { width: 20px; height: 20px; }
+  .toasts { top: calc(9.5rem + var(--safe-t)); }
   .hud-room { display: none; }
   .stamina { width: 8rem; }
   .prompt { bottom: calc(40% + var(--safe-b)); font-size: var(--t-md); }

@@ -66,8 +66,14 @@ export function ThirdPersonCamera() {
     if (cine) {
       cameraState.yaw += cine.orbitSpeed * dt;
       target.copy(cine.target);
-      desired.set(Math.sin(cameraState.yaw) * cine.distance, cine.height, Math.cos(cameraState.yaw) * cine.distance).add(target);
-      cam.position.lerp(desired, dampFactor(3, dt));
+      const dirC = tmp.set(Math.sin(cameraState.yaw) * cine.distance, cine.height, Math.cos(cameraState.yaw) * cine.distance);
+      const lenC = dirC.length();
+      dirC.normalize();
+      const rayC = new rapier.Ray({ x: target.x, y: target.y, z: target.z }, { x: dirC.x, y: dirC.y, z: dirC.z });
+      const hitC = rworld.castRay(rayC, lenC, true, undefined, groups.ray);
+      const dC = hitC ? Math.max(0.8, hitC.timeOfImpact - 0.3) : lenC;
+      desired.copy(dirC).multiplyScalar(dC).add(target);
+      cam.position.lerp(desired, dampFactor(hitC ? 8 : 3, dt));
       cam.lookAt(target);
       return;
     }
