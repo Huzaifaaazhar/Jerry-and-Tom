@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { player, simWait, startEpisode, teleport } from './helpers';
+import { grabMouse, player, simWait, startEpisode, teleport, waitStage } from './helpers';
 
 test.describe('core gameplay', () => {
   test('menus lead into a running match without errors', async ({ page }) => {
@@ -57,27 +57,29 @@ test.describe('core gameplay', () => {
   });
 
   test('cat catches the mouse and the mission counter updates', async ({ page }) => {
-    await startEpisode(page, 'Sunday Picnic', 'Barnaby');
-    await page.evaluate(() => {
-      const g = (window as any).__GAME__;
-      const pip = g.world.agents.get('pip');
-      const p = g.world.player;
-      p.body.setTranslation({ x: pip.position.x + 0.55, y: pip.position.y + 0.7, z: pip.position.z }, true);
-    });
-    await page.keyboard.press('KeyE');
-    await expect.poll(() => page.evaluate(() => (window as any).__GAME__.useGame.getState().hud.objectives[0].progress)).toBe(1);
+    await startEpisode(page, 'Midnight Snack', 'Barnaby');
+    await page.evaluate(() => (window as any).__GAME__.runtime.skipToStage(2));
+    await page.evaluate(() => (window as any).__GAME__.npcCommand('pip', { type: 'mode', mode: 'forage' }));
+    await simWait(page, 1);
+    expect(await grabMouse(page)).toBe(true);
+    await expect.poll(() => page.evaluate(() => (window as any).__GAME__.useGame.getState().hud.stage.index)).toBe(3);
   });
 
-  test('a flat (non-staged) episode can still be won: Sunday Picnic', async ({ page }) => {
-    await startEpisode(page, 'Sunday Picnic', 'Pip');
-    const items: number[][] = await page.evaluate(() => (window as any).__GAME__.useItems.getState().pickups.map((p: any) => p.position));
-    for (const [x, y, z] of items.slice(0, 3)) {
-      await teleport(page, x + 0.3, z, Math.max(0.4, y + 0.3));
-      await simWait(page, 0.25);
-    }
-    await teleport(page, -13, 29, 0.4);
+  test('Episode Two can be completed as the cat', async ({ page }) => {
+    await startEpisode(page, 'Sunday Picnic', 'Barnaby');
+    await teleport(page, 2.5, 25, 1.2);
+    await waitStage(page, 1);
+    await page.evaluate(() => {
+      const G = (window as any).__GAME__;
+      const pip = G.world.agents.get('pip');
+      G.world.player.body.setTranslation({ x: pip.position.x, y: 1.2, z: pip.position.z - 3 }, true);
+      G.world.player.facing = 0;
+    });
+    await waitStage(page, 2);
+    expect(await grabMouse(page)).toBe(true);
+    await waitStage(page, 3);
+    expect(await grabMouse(page)).toBe(true);
     await expect(page.getByRole('dialog')).toContainText('You win', { timeout: 120_000 });
-    await expect(page.getByRole('button', { name: 'Switch sides' })).toBeVisible();
   });
 
   test('switching characters swaps the controlled agent', async ({ page }) => {
@@ -85,7 +87,7 @@ test.describe('core gameplay', () => {
     expect((await player(page)).id).toBe('barnaby');
     await page.keyboard.press('Escape');
     await page.getByRole('button', { name: 'Quit to episodes' }).click();
-    await page.getByRole('button', { name: 'Choose a side' }).click();
+    await page.getByRole('button', { name: /^(Play|Replay) episode$/ }).click();
     await page.getByRole('radio', { name: /Pip/ }).click();
     await page.getByRole('button', { name: /Play as Pip/ }).click();
     await page.waitForFunction(() => (window as any).__GAME__?.world?.player?.id === 'pip' && (window as any).__GAME__.world.player.grounded);

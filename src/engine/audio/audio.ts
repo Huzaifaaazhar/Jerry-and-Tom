@@ -27,7 +27,9 @@ export type SoundId =
   | 'win'
   | 'lose'
   | 'place'
-  | 'snore';
+  | 'snore'
+  | 'growl'
+  | 'chime';
 
 export interface MusicTheme {
   /** Beats per minute of the calm groove; chase doubles the drive. */
@@ -171,6 +173,37 @@ class AudioEngine {
     src.stop(t + dur + 0.02);
   }
 
+  // ---------- Ambience: crickets & owls at night, birdsong by day ----------
+  private ambience: { timer: number; kind: string } | null = null;
+  startAmbience(kind: 'night' | 'day' | 'none') {
+    this.stopAmbience();
+    if (!this.ctx || kind === 'none') return;
+    const tick = () => {
+      const ctx = this.ctx;
+      if (!ctx || ctx.state !== 'running') return;
+      const t = ctx.currentTime + 0.05;
+      const bus = this.musicBus;
+      if (kind === 'night') {
+        if (Math.random() < 0.6) for (let i = 0; i < 3; i++) this.tone(bus, 'sine', 4200 + Math.random() * 300, 4300, t + i * 0.05, 0.03, 0.025);
+        if (Math.random() < 0.03) {
+          this.tone(bus, 'sine', 420, 380, t, 0.35, 0.06, 0.05);
+          this.tone(bus, 'sine', 400, 360, t + 0.45, 0.5, 0.05, 0.05);
+        }
+      } else {
+        if (Math.random() < 0.35) {
+          const f = 2200 + Math.random() * 1400;
+          for (let i = 0; i < 2 + Math.floor(Math.random() * 3); i++) this.tone(bus, 'sine', f, f * 1.25, t + i * 0.11, 0.07, 0.035);
+        }
+      }
+    };
+    this.ambience = { kind, timer: window.setInterval(tick, 650) };
+  }
+
+  stopAmbience() {
+    if (this.ambience) window.clearInterval(this.ambience.timer);
+    this.ambience = null;
+  }
+
   // ---------- Music: a small procedural "cartoon jazz" sequencer ----------
   startMusic(theme: MusicTheme) {
     if (!this.ctx) return;
@@ -290,6 +323,11 @@ const recipes: Partial<Record<SoundId, Recipe>> = {
   uiBack: (a, _c, o, t) => a.tone(o, 'triangle', 660, 440, t, 0.09, 0.2),
   place: (a, _c, o, t) => a.tone(o, 'triangle', 400, 300, t, 0.1, 0.25),
   snore: (a, _c, o, t) => a.noise(o, t, 0.8, 0.08, 'lowpass', 300),
+  growl: (a, _c, o, t, p) => {
+    a.tone(o, 'sawtooth', 90 * p, 70 * p, t, 0.6, 0.18, 0.05);
+    a.noise(o, t, 0.6, 0.15, 'lowpass', 400);
+  },
+  chime: (a, _c, o, t) => [0, 7, 12].forEach((s, i) => a.tone(o, 'triangle', midiToHz(79 + s), midiToHz(79 + s), t + i * 0.08, 0.4, 0.15)),
   win: (a, _c, o, t) => [0, 4, 7, 12].forEach((s, i) => a.tone(o, 'triangle', midiToHz(72 + s), midiToHz(72 + s), t + i * 0.12, 0.35, 0.25)),
   lose: (a, _c, o, t) => [0, -1, -2, -6].forEach((s, i) => a.tone(o, 'sawtooth', midiToHz(60 + s), midiToHz(59 + s), t + i * 0.3, 0.4, 0.08)),
 };

@@ -1,44 +1,140 @@
-# Adding an episode
+# Adding a new episode
 
-1. Create `src/content/episodes/epNN-your-title.ts` and `export default` an `EpisodeDefinition`
-   (copy `ep02-sunday-picnic.ts` as a starting point). It is discovered automatically.
-2. Pick an `environment` (`classic-house`) and a `lighting` preset from that environment
-   (`night`, `day`). Add one-off furniture with `extraProps`.
-3. Fill in the `cast`. `playable: true` characters get a `sides[characterId]` entry; the other
-   playable side becomes AI using `sides[...].opponentAi`. Non-playable cast (e.g. Brick) need `npc`
-   options such as `{ mode: 'sleep' | 'patrol', home, leash }`.
-4. Write each side's `objectives` and `lose` conditions:
-   - `collect` items, `reach` a zone (optionally `after` other objectives), `survive` seconds,
-     `count` gameplay events (`catch`, `slipped`, `pummeled`, `knocked`, `hide`, …),
-     `avoid` events (bonus goals).
-   - `lose`: `count` (e.g. caught 3 times) or `opponentGoal` (AI collected everything and got home).
-5. Place `pickups` (item types registered in `src/content/items.tsx`).
-6. Script `events`: triggers (`time`, `event`, `objective`) run actions (`toast`, `wake`, `music`,
-   `shake`, `door`, `grant`, `sound`). Limit to a side with `sides: ['pip']`.
-7. Set `audio.music` (tempo, root note, scale, motif) and optional `audio.sounds` file overrides.
-8. Write `ending.win` / `ending.lose` cards for every playable character.
-9. Run `npm test` - `tests/unit/episodes.test.ts` validates every episode: references, spawn points
-   inside free space, and that every pickup is reachable on the navigation grid for the characters
-   who collect it. In `npm run dev`, the same validation prints warnings in the console.
+Episodes are **content packages**. Adding one never requires changes to `src/engine/`: the engine
+loads every package it finds, validates it, lists it in the episode library and runs it with the
+shared characters, camera, controls, HUD, physics, AI and progression.
 
-No engine, HUD, camera or controller changes are needed for any of the above.
+## 1. Folder structure
 
-## Mission sequences (stages)
+```
+src/content/
+  characters/          shared character library (Pip, Barnaby, Brick) - reuse, don't copy
+  props/               shared furniture / garden / appliance / trap-object library
+  items.tsx            shared items (cheese, sandwich, crumb, big cheese, golden thimble) and traps
+  environments/        shared environments (classicHouse.ts)
+  achievements.ts      lifetime character achievements
+  episodes/
+    _template/         copy this to start (ignored by the loader because of the "_")
+      index.ts         the EpisodeDefinition (default export)
+      environment.ts   optional episode-specific environment
+    ep01-midnight-snack/
+      index.ts
+    ep02-sunday-picnic/
+      index.ts
+      environment.ts   derives the picnic-day yard from the shared house
+```
 
-For a story episode, give each side a `stages` array instead of flat objectives (see
-`ep01-midnight-snack.ts`). Each stage has:
+The loader (`src/content/index.ts`) imports `src/content/episodes/*/index.ts`, skipping folders
+whose name starts with `_`. That import **is** the registration: there is no list to edit.
 
-- `title`, `brief` - shown on the mission banner and HUD tracker.
-- `objectives` - only events that happen *after the stage starts* count toward them. Besides
-  `collect` / `reach` / `count` / `avoid`, stages can use live `metric` objectives:
-  `unseen` (seconds since an AI hunter last saw the player), `hiddenSeconds` (continuous time
-  hidden) and `seesOpponent` (the player has eyes on the opponent).
-- `onStart` actions - the episode's director: `npc` commands (`sleep`, `wake`, `alert`, `hunt`,
-  `hideIn`, `runTo`, `goto`, `enrage`, `mode`), `teleport`, `cutscene` shots, `noise`,
-  `showPickups` (reveal a pickup `group`), `door`, `music`, `toast`, `shake`, `grant`.
-- `checkpoint` / `opponentRespawn` - where characters reappear after a catch in this stage.
-- `timeLimit` + `timeoutReason`, and stage-only `lose` rules (e.g. the AI reaching a zone).
+## 2. Step by step
 
-The side's flat `objectives` become bonus goals. `intro.shots` plays an opening cutscene.
-`hazards` places persistent environmental traps (`puddle`, `rake`); `extraProps` can add
-breakable obstacles (`barricade`) and climbing aids (`bookStack`).
+1. **Copy the template**: `cp -r src/content/episodes/_template src/content/episodes/ep03-your-title`.
+   Set `id` to the folder name and give it the next `number`.
+2. **Environment assets**
+   - Reuse a shared environment (`environment: 'classic-house'`), or
+   - Derive one in `environment.ts` with `deriveEnvironment(base, { id, addProps, removeProps,
+     moveProps, addZones, addPatrolPoints, lighting })` and call `registerEnvironment(...)` at the
+     top of `index.ts`. The base environment is never modified.
+   - A brand-new layout is an `EnvironmentDefinition` (rooms, walls with `openings` for doors,
+     arches, windows and mouse holes, props, zones, patrol points, lighting presets). Walls,
+     wallpaper, floors, colliders, navigation and the library's map preview are all generated
+     from that data.
+   - New furniture: add a prop type (see "Asset requirements" below) - either in the shared library
+     (`src/content/props/`) if other episodes may reuse it, or inside your episode folder.
+3. **Episode configuration** - fill in `index.ts` (format below).
+4. **Missions and events** - write `sides[characterId].stages` for each playable character, plus
+   global `events`.
+5. **Register** - nothing to do; saving the folder registers it.
+6. **Test** - `npm test` (validation + reachability), then `npm run dev` and open the
+   **Episode library**. Use `unlock: { after: [] }` (or omit `unlock`) while developing so the
+   episode is not locked, then set the real unlock rule.
+
+## 3. Configuration format (`EpisodeDefinition`)
+
+| Field | Purpose |
+| --- | --- |
+| `id`, `number`, `title`, `tagline`, `description` | Identity and library text. |
+| `thumbnail` | Procedural title-card art (`motif`, `sky`, `ground`) or `image: '/episodes/ep03.png'`. |
+| `difficulty` (1-3), `estimatedMinutes` | Shown on the library card. |
+| `unlock.after` | Episode ids that must be completed (as either side) first. |
+| `environment`, `lighting` | Environment id and one of its lighting presets. |
+| `extraProps` | Additional prop placements for this episode only (obstacles, climbing aids). |
+| `hazards` | Persistent environmental traps: `{ kind: 'puddle' \| 'rake', position }`. |
+| `cast[]` | `characterId`, `playable`, `spawn`, `respawn`, `npc` (AI options), `variant` (costume). |
+| `intro.shots` | Opening cutscene: `{ target \| focus, from?, duration, caption }`. |
+| `sides[characterId]` | Per playable character: `brief`, `modeSummary`, `timeLimit`, `charges`, `opponentAi`, `stages`, bonus `objectives`, `lose`. |
+| `pickups[]` | Mission items; give them a `group` to keep them hidden until a stage reveals them. |
+| `collectibles[]`, `collectibleType` | Hidden collectibles saved per player (default golden thimbles). |
+| `events[]` | Scripted triggers (`time`, `event`, `objective`) → actions. |
+| `achievements[]`, `challenges[]` | `{ id, title, description, side?, condition }` evaluated after each run. |
+| `audio` | `music` theme (tempo, root, scale, motif), `ambience` (`night` / `day`), `sounds` file overrides. |
+| `ending.win` / `ending.lose` | Ending card per playable character. |
+
+### Stages (missions)
+
+```ts
+{
+  id: 'barricade',
+  title: 'Barricade',                       // mission banner + HUD
+  brief: 'Smash through it (E, three times).',
+  checkpoint: { position: [0, 0, 1] },      // player respawn / "continue from here" point
+  opponentRespawn: { position: [-12, 0, -9] },
+  timeLimit: 75, timeoutReason: '…',        // optional stage timer
+  onStart: [ /* actions when the stage begins */ ],
+  onResume: [ /* extra actions when a run *starts* here via Continue */ ],
+  lose: [ /* stage-only lose rules */ ],
+  objectives: [ { id: 'smash', label: 'Smash the barricade', type: 'count', event: 'broken', who: 'player', count: 1 } ],
+}
+```
+
+Objective types: `collect`, `reach` (zone, optional `after`), `survive`, `count` (gameplay event),
+`avoid` (bonus), `metric` (`unseen`, `hiddenSeconds`, `seesOpponent`). Counted events include
+`catch`, `caught`, `pickup`, `hide`, `found`, `slipped`, `splat`, `bonked`, `pummeled`, `trapped`,
+`broken`, `slam`, `nearMiss`, `taunt`, `knocked`, `enterZone`, `enterRoom`. `who` is `player`,
+`opponent`, `any` or `npc:<characterId>`.
+
+Actions: `toast`, `cutscene`, `npc` (`sleep`, `wake`, `alert`, `hunt`, `hideIn`, `runTo`, `goto`,
+`enrage`, `mode`), `teleport`, `noise`, `showPickups`, `door`, `music`, `shake`, `grant`, `sound`.
+
+Lose rules: `count` (optionally filtered by `zoneId`) and `opponentGoal`.
+
+### AI configuration
+
+`opponentAi` (per side) and `cast[].npc` accept `NpcOptions`: `mode` (`sleep`, `patrol`, `roam`,
+`hunt`, `forage`, `stayHidden`, `runHome`, `idle`), `home`, `leash`, `skill` (0-1), `collects`,
+`homeZone`, `grace`. Brains are chosen by character archetype (hunter / prey / guardian).
+
+## 4. Asset requirements
+
+**Characters** - always reuse `src/content/characters/`. Episodes may only add a costume through
+`cast[].variant` (`hat`: nightcap / sunHat / chefHat / partyHat, or a different `accessory`); the
+validator rejects anything else, so proportions, colours, rig, faces and movement stay identical in
+every episode. Artist GLBs replace characters globally via `public/models/manifest.json` (see
+ASSET_PIPELINE.md).
+
+**Props** - register with `registerProp({ id, label, Render, colliders, hideSpot?, knockable?,
+breakable?, pushable? })`:
+
+- Model in local space: origin at floor level, front facing +Z, metres-ish units (a door is 2.8 tall).
+- Build `Render` from the shared parts (`Box`, `Cyl`, `Ball`, `Cone`, `Torus`, `Legs`) and the shared
+  toon materials so the look and batching stay consistent; or load a GLB with `useGLTF`.
+- `colliders` are boxes in local space; they drive physics **and** AI navigation.
+- Affordances: `hideSpot` (offset, exit, archetypes, `searchable`), `knockable` (falls, crashes,
+  bonks), `breakable` (hits, debris), `pushable` (mass).
+
+**Items / traps** - `registerItem` / `registerTrap` in `items.tsx` or in your episode folder.
+
+**Audio** - procedural by default; map any sound id to a file with `audio.sounds`.
+
+## 5. Testing process
+
+1. `npm test` - `tests/unit/episodes.test.ts` runs `validateEpisode` on every episode: unknown
+   characters / props / items / zones, missing sides, stage wiring, duplicate ids, library metadata,
+   unlock references, achievement sides, costume rules, spawn points inside obstacles, and that every
+   pickup and collectible is **reachable** on the navigation grid.
+2. `npm run dev` - console warnings starting with `[episode]` repeat the validation live.
+3. Play both sides from the library. In the browser console, `__GAME__.runtime.skipToStage(n)` jumps to
+   a mission and `__GAME__.npcCommand('barnaby', { type: 'hunt' })` drives the AI.
+4. Add a Playwright spec in `tests/e2e/` modelled on `episode-one.spec.ts` (complete every mission in
+   both modes). Run with `npm run e2e`.

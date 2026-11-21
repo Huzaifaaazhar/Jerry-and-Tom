@@ -29,6 +29,14 @@ export function SettingsPanel() {
         <span>Reduce camera shake</span>
       </label>
       <label>
+        <span>Graphics</span>
+        <select value={settings.quality} onChange={(e) => updateSettings({ quality: e.target.value as 'auto' | 'high' | 'low' })}>
+          <option value="auto">Automatic</option>
+          <option value="high">High (sharp shadows)</option>
+          <option value="low">Low (no shadows, faster)</option>
+        </select>
+      </label>
+      <label>
         <span>Touch controls</span>
         <select value={settings.touchControls} onChange={(e) => updateSettings({ touchControls: e.target.value as 'auto' | 'on' | 'off' })}>
           <option value="auto">Automatic</option>

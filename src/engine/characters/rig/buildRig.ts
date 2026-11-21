@@ -345,6 +345,48 @@ export function buildRig(look: ProceduralLook): Rig {
     head.add(tuft);
   }
 
+  // Costume hat (episode variants)
+  if (look.hat) {
+    const hm = toon(look.hat.color);
+    const band = toon(look.hat.band ?? palette.cream);
+    const hg = group(head, [0, hr[1] * 0.78, -H.r * 0.05], 'hat');
+    if (look.hat.type === 'nightcap') {
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(H.r * 0.72, H.r * 1.6, 18), hm);
+      cone.position.set(0, H.r * 0.7, 0);
+      cone.rotation.z = -0.5;
+      cone.castShadow = true;
+      outlineFor(cone, ol, new THREE.Vector3(H.r * 0.72, H.r * 0.8, H.r * 0.72));
+      hg.add(cone);
+      const brim = new THREE.Mesh(new THREE.TorusGeometry(H.r * 0.7, H.r * 0.12, 8, 20), band);
+      brim.rotation.x = Math.PI / 2;
+      hg.add(brim);
+      ellipsoid(hg, [H.r * 0.16, H.r * 0.16, H.r * 0.16], [H.r * 0.72, H.r * 1.2, 0], band);
+    } else if (look.hat.type === 'sunHat') {
+      const brim = new THREE.Mesh(new THREE.CylinderGeometry(H.r * 1.35, H.r * 1.4, H.r * 0.06, 28), hm);
+      brim.castShadow = true;
+      outlineFor(brim, ol, new THREE.Vector3(H.r * 1.4, H.r * 0.05, H.r * 1.4));
+      hg.add(brim);
+      const crown = new THREE.Mesh(new THREE.CylinderGeometry(H.r * 0.62, H.r * 0.7, H.r * 0.45, 22), hm);
+      crown.position.y = H.r * 0.22;
+      hg.add(crown);
+      const b = new THREE.Mesh(new THREE.CylinderGeometry(H.r * 0.71, H.r * 0.71, H.r * 0.12, 22), band);
+      b.position.y = H.r * 0.08;
+      hg.add(b);
+    } else if (look.hat.type === 'chefHat') {
+      ellipsoid(hg, [H.r * 0.75, H.r * 0.55, H.r * 0.75], [0, H.r * 0.6, 0], hm, ol);
+      const b = new THREE.Mesh(new THREE.CylinderGeometry(H.r * 0.6, H.r * 0.6, H.r * 0.35, 20), hm);
+      b.position.y = H.r * 0.15;
+      hg.add(b);
+    } else {
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(H.r * 0.45, H.r * 1.1, 16), hm);
+      cone.position.y = H.r * 0.5;
+      cone.rotation.z = 0.2;
+      outlineFor(cone, ol, new THREE.Vector3(H.r * 0.45, H.r * 0.55, H.r * 0.45));
+      hg.add(cone);
+      ellipsoid(hg, [H.r * 0.12, H.r * 0.12, H.r * 0.12], [-H.r * 0.2, H.r * 1.05, 0], band);
+    }
+  }
+
   // Dizzy stars + Zzz + sweat drop
   const stars = group(head, [0, hr[1] * 1.25, 0], 'stars');
   const starGeo = makeStar();

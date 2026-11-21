@@ -1,10 +1,10 @@
 import { useGame } from '@engine/core/store';
 import { getEpisode } from '@engine/episode/registry';
 import { audio } from '@engine/audio/audio';
-import { Check, Cross } from '../components/Icons';
+import { Check, Cross, Star } from '../components/Icons';
 
 export function Results() {
-  const { result, restart, goTo, episodeId, characterId, selectCharacter, startRun } = useGame();
+  const { result, restart, goTo, episodeId, characterId, selectCharacter, startRun, setStartStage } = useGame();
   if (!result) return null;
   const ep = getEpisode(episodeId!);
   const other = ep.cast.find((c) => c.playable && c.characterId !== characterId);
@@ -35,6 +35,30 @@ export function Results() {
             </div>
           ))}
         </dl>
+        {result.rewards && (result.rewards.achievements.length > 0 || result.rewards.challenges.length > 0 || result.rewards.unlockedEpisodes.length > 0 || result.rewards.collectibles.newThisRun > 0) && (
+          <ul className="result-rewards" aria-label="Rewards">
+            {result.rewards.unlockedEpisodes.map((t) => (
+              <li key={t} className="reward unlock">
+                Episode unlocked: {t}
+              </li>
+            ))}
+            {result.rewards.achievements.map((t) => (
+              <li key={t} className="reward">
+                <Star /> Achievement: {t}
+              </li>
+            ))}
+            {result.rewards.challenges.map((t) => (
+              <li key={t} className="reward">
+                <Check /> Challenge complete: {t}
+              </li>
+            ))}
+            {result.rewards.collectibles.newThisRun > 0 && (
+              <li className="reward">
+                Golden thimbles: {result.rewards.collectibles.found}/{result.rewards.collectibles.total}
+              </li>
+            )}
+          </ul>
+        )}
         {result.bonus.length > 0 && (
           <ul className="result-bonus" aria-label="Bonus goals">
             {result.bonus.map((b) => (
@@ -46,7 +70,7 @@ export function Results() {
           </ul>
         )}
         <div className="result-actions">
-          <button className="btn btn-primary" autoFocus onClick={() => (audio.play('ui'), restart())}>
+          <button className="btn btn-primary" autoFocus onClick={() => (audio.play('ui'), setStartStage(0), restart())}>
             Play again
           </button>
           {other && (
@@ -55,6 +79,7 @@ export function Results() {
               onClick={() => {
                 audio.play('ui');
                 selectCharacter(other.characterId);
+                setStartStage(0);
                 startRun();
               }}
             >
@@ -62,7 +87,7 @@ export function Results() {
             </button>
           )}
           <button className="btn" onClick={() => (audio.play('uiBack'), goTo('episodes'))}>
-            Episodes
+            Episode library
           </button>
         </div>
       </div>

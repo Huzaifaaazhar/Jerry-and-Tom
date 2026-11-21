@@ -1,8 +1,9 @@
 /**
  * The in-game canvas plus the desktop input bridge (keyboard, pointer lock, mouse look, wheel).
  */
-import { Suspense, useEffect, useRef } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
+import { PerformanceMonitor } from '@react-three/drei';
 import * as THREE from 'three';
 import { useGame } from '@engine/core/store';
 import { getEpisode } from '@engine/episode/registry';
@@ -23,6 +24,10 @@ export function GameView() {
   const episodeId = useGame((s) => s.episodeId);
   const characterId = useGame((s) => s.characterId);
   const runId = useGame((s) => s.runId);
+  const startStage = useGame((s) => s.startStage);
+  const quality = useGame((s) => s.settings.quality);
+  const maxDpr = quality === 'low' ? 1 : quality === 'high' ? 2 : 1.75;
+  const [dpr, setDpr] = useState(Math.min(maxDpr, window.devicePixelRatio || 1));
   const wrap = useRef<HTMLDivElement>(null);
   const drag = useRef<{ x: number; y: number } | null>(null);
 
@@ -107,13 +112,17 @@ export function GameView() {
     >
       <Canvas
         key={runId}
-        shadows
-        dpr={[1, 1.75]}
+        shadows={quality !== 'low'}
+        dpr={dpr}
         camera={{ fov: 60, near: 0.05, far: 160, position: [0, 6, 10] }}
         gl={{ antialias: true, powerPreference: 'high-performance', toneMapping: THREE.ACESFilmicToneMapping }}
       >
+        {quality === 'auto' && (
+          // Adaptive resolution: drop pixel ratio on struggling devices, raise it again when smooth.
+          <PerformanceMonitor onDecline={() => setDpr((d) => Math.max(0.75, d - 0.25))} onIncline={() => setDpr((d) => Math.min(maxDpr, d + 0.25))} />
+        )}
         <Suspense fallback={null}>
-          <GameSession episode={ep} playerCharacterId={characterId} runId={runId} />
+          <GameSession episode={ep} playerCharacterId={characterId} runId={runId} startStage={startStage} />
           <Ready />
         </Suspense>
       </Canvas>

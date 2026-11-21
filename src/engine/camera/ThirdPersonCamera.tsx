@@ -40,6 +40,8 @@ export function ThirdPersonCamera() {
   const fov = useRef(62);
   /** Extra pitch applied automatically when the camera is squeezed against a wall. */
   const boost = useRef(0);
+  /** Smooth hand-off from a cinematic shot back to gameplay. */
+  const blend = useRef({ t: 1, from: new THREE.Vector3(), wasCine: false });
 
   useEffect(() => {
     const off = [
@@ -65,6 +67,12 @@ export function ThirdPersonCamera() {
     const cam = camera as THREE.PerspectiveCamera;
     const cine = cameraState.cinematic;
 
+    if (cine) blend.current.wasCine = true;
+    else if (blend.current.wasCine) {
+      blend.current.wasCine = false;
+      blend.current.t = 0;
+      blend.current.from.copy(cam.position);
+    }
     if (cine && cine.from) {
       target.copy(cine.target);
       cam.position.lerp(cine.from, dampFactor(2.5, dt));
@@ -131,7 +139,11 @@ export function ThirdPersonCamera() {
 
     desired.copy(dir).multiplyScalar(dist.current).add(t);
     if (desired.y < 0.25) desired.y = 0.25;
-    cam.position.copy(desired);
+    if (blend.current.t < 1) {
+      blend.current.t = Math.min(1, blend.current.t + dt / 0.9);
+      const k = 1 - Math.pow(1 - blend.current.t, 3);
+      cam.position.lerpVectors(blend.current.from, desired, k);
+    } else cam.position.copy(desired);
 
     // Shake
     cameraState.trauma = Math.max(0, cameraState.trauma - dt * 1.4);

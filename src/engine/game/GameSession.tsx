@@ -14,7 +14,10 @@ import { EpisodeRuntime } from '../episode/runtime';
 import { world, type AgentState } from '../core/world';
 import { useGame } from '../core/store';
 import { GRAVITY } from '../core/physics';
-import { getCharacter } from '../characters/registry';
+import { getCharacter, withVariant } from '../characters/registry';
+import { useProgress, type RunReport } from '../progress/progress';
+import { allEpisodes } from '../episode/registry';
+import type { CountedEvent } from '../episode/types';
 import type { CharacterDefinition } from '../characters/types';
 import { EnvironmentView } from '../environment/EnvironmentView';
 import { collectObstacleBoxes } from '../environment/collect';
@@ -54,14 +57,17 @@ interface Setup {
   navs: { small: NavGrid; large: NavGrid };
   removed: Set<string>;
   rng: () => number;
+  collectiblesFound: string[];
   /** Live measurements shared with the runtime's metric objectives and the HUD. */
   metrics: { lastSpotted: number; hiddenSince: number | null; seesOpponent: boolean; lastPreyClue: THREE.Vector3 | null; lastClueAt: number };
 }
 
+const TRACKED: CountedEvent[] = ['catch', 'caught', 'hide', 'found', 'slipped', 'splat', 'pummeled', 'trapped', 'nearMiss', 'slam', 'broken', 'taunt', 'trapPlaced', 'pickup', 'knocked', 'bonked'];
+
 const SMALL = { id: 'small', radius: 0.12, height: 0.56 };
 const LARGE = { id: 'large', radius: 0.46, height: 1.5 };
 
-export function GameSession({ episode, playerCharacterId, runId }: { episode: EpisodeDefinition; playerCharacterId: string; runId: number }) {
+export function GameSession({ episode, playerCharacterId, runId, startStage = 0 }: { episode: EpisodeDefinition; playerCharacterId: string; runId: number; startStage?: number }) {
   const env = getEnvironment(episode.environment);
   const lighting = env.lighting[episode.lighting] ?? Object.values(env.lighting)[0];
   const physicsRef = useRef<ReturnType<typeof useRapier> | null>(null);
@@ -146,7 +152,8 @@ export function GameSession({ episode, playerCharacterId, runId }: { episode: Ep
     const npcs: Npc[] = [];
     const rng = seededRandom(runId * 7919 + 13);
     for (const entry of episode.cast) {
-      const def = getCharacter(entry.characterId);
+      // Shared library character + optional episode costume (never a different design).
+      const def = withVariant(getCharacter(entry.characterId), entry.variant);
       const isPlayer = entry.characterId === playerCharacterId;
       const charges = isPlayer && side.charges ? side.charges : def.trap ? { [def.trap.kind]: def.trap.charges } : {};
       const agent = world.addAgent({
@@ -166,7 +173,13 @@ export function GameSession({ episode, playerCharacterId, runId }: { episode: Ep
         npcs.push({ agent, def, brain, options, size: def.body.radius <= 0.22 ? 'small' : 'large' });
       }
     }
-    useItems.getState().setPickups(episode.pickups.map((p) => ({ ...p, collected: false, hidden: !!p.group })));
+    const alreadyFound = new Set(useProgress.getState().save.episodes[episode.id]?.collectibles ?? []);
+    useItems.getState().setPickups([
+      ...episode.pickups.map((p) => ({ ...p, collected: false, hidden: !!p.group })),
+      ...(episode.collectibles ?? [])
+        .filter((c) => !alreadyFound.has(c.id))
+        .map((c) => ({ id: c.id, type: episode.collectibleType ?? 'goldenThimble', position: c.position, collected: false, collectible: true })),
+    ]);
     for (const [i, h] of (episode.hazards ?? []).entries()) {
       useItems.getState().addTrap({ id: `hazard-${i}`, kind: h.kind, position: h.position, ownerId: 'environment', placedAt: -99, sprung: false, persistent: true });
     }
@@ -196,16 +209,28 @@ export function GameSession({ episode, playerCharacterId, runId }: { episode: Ep
       },
       onStage: (st, index) => {
         const store = useGame.getState();
+        // Continuing from a later mission: put the player at that mission's checkpoint.
+        if (index === runtime.resumeIndex && index > 0 && st.checkpoint) {
+          const p = world.player;
+          const def = p ? getCharacter(p.characterId) : null;
+          if (p?.body && def) {
+            const c = st.checkpoint;
+            p.body.setTranslation({ x: c.position[0], y: c.position[1] + def.body.halfHeight + def.body.radius + 0.05, z: c.position[2] }, true);
+            p.facing = c.facing ?? p.facing;
+            cameraState.yaw = p.facing + Math.PI;
+          }
+        }
         store.showBanner({ index, total: runtime.stages.length, title: st.title, brief: st.brief });
         if (index > 0) audio.play('win', { gain: 0.35 });
         metrics.lastSpotted = world.time;
       },
     });
-    const s: Setup = { agents, npcs, runtime, navs, removed, rng, metrics };
+    if (startStage > 0) runtime.startAt(startStage);
+    const s: Setup = { agents, npcs, runtime, navs, removed, rng, metrics, collectiblesFound: [] };
     setupRef.current = s;
     return s;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [episode, playerCharacterId, runId]);
+  }, [episode, playerCharacterId, runId, startStage]);
 
   // Event reactions: mission runtime, toasts, nav rebuilds
   useEffect(() => {
@@ -256,9 +281,16 @@ export function GameSession({ episode, playerCharacterId, runId }: { episode: Ep
           if (!e.found && isP(e.agentId)) store.pushToast('Nobody in there.', 'info', 1.6);
           if (e.found && isP(e.agentId)) store.pushToast('There you are!', 'good', 1.6);
           break;
-        case 'pickup':
-          if (isP(e.agentId)) store.pushToast(`Got the ${e.itemType}!`, 'good', 1.4);
+        case 'pickup': {
+          const col = episode.collectibles?.find((c) => c.id === e.pickupId);
+          if (col) {
+            setup.collectiblesFound.push(col.id);
+            const before = useProgress.getState().save.episodes[episode.id]?.collectibles.length ?? 0;
+            audio.play('chime');
+            store.pushToast(`Golden find! ${before + setup.collectiblesFound.length} / ${episode.collectibles!.length} collectibles`, 'good', 2.4);
+          } else if (isP(e.agentId)) store.pushToast(`Got the ${e.itemType}!`, 'good', 1.4);
           break;
+        }
       }
     });
     function rebuildNav() {
@@ -267,6 +299,7 @@ export function GameSession({ episode, playerCharacterId, runId }: { episode: Ep
       setup.navs.large = new NavGrid(env.bounds, 0.25, LARGE, boxes);
     }
     audio.startMusic(episode.audio.music);
+    audio.startAmbience(episode.audio.ambience ?? 'none');
     for (const [id, url] of Object.entries(episode.audio.sounds ?? {})) audio.registerSoundFile(id, url);
     if (episode.intro?.shots.length) playCutscene(episode.intro.shots);
     const side = setup.runtime.side;
@@ -275,6 +308,7 @@ export function GameSession({ episode, playerCharacterId, runId }: { episode: Ep
     return () => {
       off();
       audio.stopMusic();
+      audio.stopAmbience();
       stopCutscene();
     };
   }, [setup, episode, env]);
@@ -540,6 +574,24 @@ function Simulation({
     ];
     const caughtRule = rt.side.lose.find((l) => l.type === 'count' && l.who === 'player');
     if (caughtRule && caughtRule.type === 'count') stats.push({ label: caughtRule.event === 'caught' ? 'Times caught' : 'Times walloped', value: `${rt.count(caughtRule.event, 'player')}` });
+
+    // Persist progress: completion, best time, stats, achievements, collectibles.
+    const counts: Record<string, number> = {};
+    for (const ev of TRACKED) for (const who of ['player', 'opponent'] as const) counts[`${ev}:${who}`] = rt.count(ev, who);
+    const bonus = rt.bonusSummary();
+    const report: RunReport = {
+      episodeId: episode.id,
+      characterId: rt.playerCharacterId,
+      outcome: out.outcome,
+      elapsed: rt.elapsed,
+      furthestStage: Math.min(rt.stagesCompleted(), Math.max(0, rt.stages.length - 1)),
+      counts,
+      bonusAll: bonus.length > 0 && bonus.every((b) => b.done),
+      collectiblesFound: setup.collectiblesFound,
+    };
+    const rewards = useProgress.getState().record(report);
+    const epSave = useProgress.getState().save.episodes[episode.id];
+    if (rewards.newBest) stats.push({ label: 'New best time!', value: `${minutes}:${secs}` });
     store.finish({
       outcome: out.outcome,
       title: card?.title ?? (out.outcome === 'win' ? 'You win!' : 'Better luck next time'),
@@ -547,6 +599,13 @@ function Simulation({
       stats,
       bonus: rt.bonusSummary(),
       stages: rt.stages.map((s, i) => ({ title: s.title, done: i < done })),
+      rewards: {
+        achievements: rewards.achievements.map((a) => a.title).concat(rewards.lifetime.map((a) => a.title)),
+        challenges: rewards.challenges.map((c) => c.title),
+        unlockedEpisodes: rewards.unlockedEpisodes.map((id) => allEpisodes().find((e) => e.id === id)?.title ?? id),
+        newBest: rewards.newBest,
+        collectibles: { found: epSave?.collectibles.length ?? 0, total: episode.collectibles?.length ?? 0, newThisRun: rewards.collectibles },
+      },
     });
   }
 

@@ -4,3 +4,4 @@ import './kitchen';
 import './bedroom';
 import './outdoor';
 import './misc';
+import './garden2';

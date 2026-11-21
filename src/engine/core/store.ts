@@ -4,7 +4,7 @@
  */
 import { create } from 'zustand';
 
-export type Screen = 'menu' | 'episodes' | 'characters' | 'playing' | 'results' | 'howto';
+export type Screen = 'menu' | 'episodes' | 'characters' | 'playing' | 'results' | 'howto' | 'scrapbook';
 
 export interface ObjectiveView {
   id: string;
@@ -30,6 +30,13 @@ export interface MatchResult {
   stats: { label: string; value: string }[];
   bonus: { label: string; done: boolean }[];
   stages?: { title: string; done: boolean }[];
+  rewards?: {
+    achievements: string[];
+    challenges: string[];
+    unlockedEpisodes: string[];
+    newBest: boolean;
+    collectibles: { found: number; total: number; newThisRun: number };
+  };
 }
 
 export interface Settings {
@@ -38,6 +45,7 @@ export interface Settings {
   mouseSensitivity: number;
   invertY: boolean;
   touchControls: 'auto' | 'on' | 'off';
+  quality: 'auto' | 'high' | 'low';
   reducedMotion: boolean;
   showDebug: boolean;
 }
@@ -83,6 +91,9 @@ interface GameStore {
   characterId: string | null;
   runId: number;
   loading: boolean;
+  /** Mission to start from (continue / mission select). */
+  startStage: number;
+  setStartStage: (i: number) => void;
   settings: Settings;
   hud: HudState;
   toasts: Toast[];
@@ -115,6 +126,7 @@ const defaultSettings: Settings = {
   mouseSensitivity: 1,
   invertY: false,
   touchControls: 'auto',
+  quality: 'auto',
   reducedMotion: false,
   showDebug: false,
 };
@@ -156,6 +168,8 @@ export const useGame = create<GameStore>((set, get) => ({
   characterId: null,
   runId: 0,
   loading: false,
+  startStage: 0,
+  setStartStage: (startStage) => set({ startStage }),
   settings: loadSettings(),
   hud: emptyHud(),
   toasts: [],

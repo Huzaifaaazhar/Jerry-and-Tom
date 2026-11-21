@@ -33,6 +33,8 @@ export interface ProceduralLook {
   teeth?: 'buck' | 'fangs' | 'underbite';
   whiskers?: boolean;
   accessory?: { type: 'scarf' | 'collar' | 'bowtie'; color: string; tag?: string };
+  /** Optional hat (episode costume variants). */
+  hat?: { type: 'nightcap' | 'sunHat' | 'chefHat' | 'partyHat'; color: string; band?: string };
   /** Thickness multiplier for ink outlines. */
   outline?: number;
 }

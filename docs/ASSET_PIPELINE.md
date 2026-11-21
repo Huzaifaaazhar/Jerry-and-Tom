@@ -52,3 +52,22 @@ To swap a primitive prop for a modelled one, keep the registration and colliders
 All sounds and music are procedural by default. Episode files can override any sound id with a
 recorded file: `audio: { sounds: { crash: '/audio/crash.ogg' } }`. Missing files fall back to the
 synth version automatically.
+
+## Shared asset library (current contents)
+
+| Category | Prop / item ids |
+| --- | --- |
+| Living room | `sofa` (hide), `armchair`, `coffeeTable`, `bookshelf`, `floorLamp`, `sideTableVase` (knockable), `radio`, `fireplace`, `piano`, `rug`, `pottedPlant` (hide), `wallFrame`, `grandfatherClock`, `coatRack` |
+| Kitchen & dining | `counter` (plain/sink/stove, hide), `fridge`, `trashCan` (hide), `kitchenTable`, `chair`, `diningTable`, `sideboard` (knockable plates), `crate` (pushable), `cardboardBox` (hide) |
+| Bedrooms | `bed` (hide under), `wardrobe` (hide), `dresser` (knockable alarm clock), `nightstand`, `toyBox` (hide), `bookStack` |
+| Garden & yard | `doghouse`, `dogBowl`, `tree`, `hedge`, `flowerBed`, `picnicTable`, `birdbath`, `wheelbarrow`, `gnome`, `fountain`, `picnicBlanket`, `picnicBasket` (hide), `patioUmbrella`, `lawnChair`, `gardenBench`, `laundryBasket` (hide) |
+| Special | `mouseHome` (mouse's safe hide spot), `barricade` (breakable) |
+| Doors & windows | generated from wall `openings` (hinged doors with pet flaps, arches, windows, mouse holes) |
+| Items | `cheese`, `sandwich`, `crumb`, `bigCheese`, `goldenThimble` (collectible) |
+| Traps & hazards | `mousetrap`, `bananaPeel`, `puddle`, `rake` |
+
+## Costumes
+
+Episodes can give a shared character a temporary look with `cast[].variant` - currently hats
+(`nightcap`, `sunHat`, `chefHat`, `partyHat`) and accessories (`scarf`, `collar`, `bowtie`). The
+character's model, proportions, colours, rig and animation are never changed by an episode.

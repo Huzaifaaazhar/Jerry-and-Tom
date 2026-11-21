@@ -2,6 +2,9 @@ import { useGame } from '@engine/core/store';
 import { audio } from '@engine/audio/audio';
 import { Logo } from '../components/Logo';
 import { Stage } from '../components/Stage';
+import { useProgress, isUnlocked } from '@engine/progress/progress';
+import { allEpisodes } from '@engine/episode/registry';
+import { getCharacter } from '@engine/characters/registry';
 
 const CAST = [
   { id: 'brick', x: -2.1, z: -0.6, facing: 0.5 },
@@ -11,6 +14,17 @@ const CAST = [
 
 export function MainMenu() {
   const goTo = useGame((s) => s.goTo);
+  const last = useProgress((s) => s.save.lastPlayed);
+  const save = useProgress((s) => s.save);
+  const lastEp = last ? allEpisodes().find((e) => e.id === last.episodeId) : undefined;
+  const canContinue = !!lastEp && isUnlocked(lastEp, save);
+  const continueGame = () => {
+    if (!lastEp || !last) return;
+    const g = useGame.getState();
+    g.selectEpisode(lastEp.id);
+    g.selectCharacter(last.characterId);
+    g.goTo('characters');
+  };
   const click = (fn: () => void) => () => {
     audio.unlock();
     audio.play('ui');
@@ -28,6 +42,14 @@ export function MainMenu() {
         <nav className="menu-buttons" aria-label="Main menu">
           <button className="btn btn-primary btn-xl" onClick={click(() => goTo('episodes'))} autoFocus>
             Play
+          </button>
+          {canContinue && (
+            <button className="btn" onClick={click(continueGame)}>
+              Continue: {lastEp!.title} as {getCharacter(last!.characterId).name}
+            </button>
+          )}
+          <button className="btn" onClick={click(() => goTo('scrapbook'))}>
+            Scrapbook
           </button>
           <button className="btn" onClick={click(() => goTo('howto'))}>
             How to play

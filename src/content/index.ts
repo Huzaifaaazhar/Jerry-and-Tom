@@ -1,7 +1,7 @@
 /**
  * Content registration. Everything game-specific lives under src/content and is registered here.
- * Episodes are discovered automatically: drop a new file in ./episodes exporting an
- * EpisodeDefinition as default and it appears in the episode menu.
+ * Episodes are discovered automatically: add a folder in ./episodes whose index.ts
+ * default-exports an EpisodeDefinition and it appears in the episode library.
  */
 import './props';
 import './items';
@@ -18,5 +18,9 @@ registerCharacter(barnaby);
 registerCharacter(brick);
 registerEnvironment(classicHouse);
 
-const modules = import.meta.glob<{ default: EpisodeDefinition }>('./episodes/*.ts', { eager: true });
+import './achievements';
+
+// Every folder in ./episodes with an index.ts is an episode package (folders starting with "_" are
+// templates and are ignored). Packages may register their own environments, props and items.
+const modules = import.meta.glob<{ default: EpisodeDefinition }>(['./episodes/*/index.ts', '!./episodes/_*/index.ts'], { eager: true });
 for (const m of Object.values(modules)) registerEpisode(m.default);

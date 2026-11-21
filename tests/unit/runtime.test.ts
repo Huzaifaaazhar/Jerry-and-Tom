@@ -8,6 +8,8 @@ const ep: EpisodeDefinition = {
   title: 'Test',
   tagline: '',
   description: '',
+  difficulty: 1,
+  estimatedMinutes: 5,
   thumbnail: { motif: 'sun', sky: '#fff', ground: '#0f0' },
   environment: 'x',
   lighting: 'day',

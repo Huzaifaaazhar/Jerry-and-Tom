@@ -26,6 +26,8 @@ function HoldButton({ b, label, className = '' }: { b: Button; label: string; cl
 
 export function TouchControls() {
   const characterId = useGame((s) => s.characterId);
+  const prompt = useGame((s) => s.hud.prompt);
+  const useLabel = prompt ? (prompt.length > 14 ? prompt.split(' ').slice(0, 2).join(' ') : prompt) : 'Use';
   const def = characterId ? getCharacter(characterId) : null;
   const stick = useRef<{ id: number; x: number; y: number } | null>(null);
   const look = useRef<{ id: number; x: number; y: number } | null>(null);
@@ -92,7 +94,8 @@ export function TouchControls() {
       />
       <div className="touch-buttons">
         <HoldButton b="jump" label="Jump" className="big" />
-        <HoldButton b="interact" label="Use" className="big" />
+        <HoldButton b="interact" label={useLabel} className={`big ${prompt ? 'ready' : ''}`} />
+        <HoldButton b="sprint" label="Run" />
         <HoldButton b="sneak" label="Sneak" />
         {def?.trap && <HoldButton b="trap" label="Trap" />}
         {def?.ability && <HoldButton b="ability" label={def.ability === 'pounce' ? 'Pounce' : 'Taunt'} />}

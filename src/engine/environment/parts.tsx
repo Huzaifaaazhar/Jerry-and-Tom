@@ -23,42 +23,46 @@ interface PartProps {
 const ink = palette.ink;
 const OUTLINE = 0.025;
 
-export function Box({ p = [0, 0, 0], r, s, color, radius = 0, outline, shadow = true, map, opacity }: PartProps & { s: Vec3Tuple; radius?: number }) {
+/** Small trim parts don't need to cast shadows - saves a draw call each in the shadow pass. */
+const castsShadow = (shadow: boolean | undefined, size: number) => (shadow === undefined ? size > 0.22 : shadow);
+
+export function Box({ p = [0, 0, 0], r, s, color, radius = 0, outline, shadow, map, opacity }: PartProps & { s: Vec3Tuple; radius?: number }) {
   const mat = toon(color, { map, key: map ? map.uuid : '', opacity });
+  const cast = castsShadow(shadow, Math.max(...s));
   if (radius > 0) {
     return (
-      <RoundedBox args={s} radius={Math.min(radius, Math.min(...s) / 2 - 0.001)} smoothness={3} position={p} rotation={r} material={mat} castShadow={shadow} receiveShadow>
+      <RoundedBox args={s} radius={Math.min(radius, Math.min(...s) / 2 - 0.001)} smoothness={3} position={p} rotation={r} material={mat} castShadow={cast} receiveShadow>
         {outline && <Outlines thickness={OUTLINE} color={ink} />}
       </RoundedBox>
     );
   }
   return (
-    <mesh position={p} rotation={r} material={mat} castShadow={shadow} receiveShadow>
+    <mesh position={p} rotation={r} material={mat} castShadow={cast} receiveShadow>
       <boxGeometry args={s} />
       {outline && <Outlines thickness={OUTLINE} color={ink} />}
     </mesh>
   );
 }
 
-export function Cyl({ p = [0, 0, 0], r, rt, rb, h, color, seg = 20, outline, shadow = true, opacity }: PartProps & { rt: number; rb?: number; h: number; seg?: number }) {
+export function Cyl({ p = [0, 0, 0], r, rt, rb, h, color, seg = 20, outline, shadow, opacity }: PartProps & { rt: number; rb?: number; h: number; seg?: number }) {
   return (
-    <mesh position={p} rotation={r} material={toon(color, { opacity })} castShadow={shadow} receiveShadow>
+    <mesh position={p} rotation={r} material={toon(color, { opacity })} castShadow={castsShadow(shadow, Math.max(rt * 2, h))} receiveShadow>
       <cylinderGeometry args={[rt, rb ?? rt, h, seg]} />
       {outline && <Outlines thickness={OUTLINE} color={ink} />}
     </mesh>
   );
 }
 
-export function Ball({ p = [0, 0, 0], r, s = [1, 1, 1], rad, color, outline, shadow = true, seg = 20 }: PartProps & { rad: number; s?: Vec3Tuple; seg?: number }) {
+export function Ball({ p = [0, 0, 0], r, s = [1, 1, 1], rad, color, outline, shadow, seg = 20 }: PartProps & { rad: number; s?: Vec3Tuple; seg?: number }) {
   return (
-    <mesh position={p} rotation={r} scale={s} material={toon(color)} castShadow={shadow} receiveShadow>
+    <mesh position={p} rotation={r} scale={s} material={toon(color)} castShadow={castsShadow(shadow, rad * 2 * Math.max(...s))} receiveShadow>
       <sphereGeometry args={[rad, seg, Math.round(seg * 0.75)]} />
       {outline && <Outlines thickness={OUTLINE} color={ink} />}
     </mesh>
   );
 }
 
-export function Torus({ p = [0, 0, 0], r, rad, tube, arc = Math.PI * 2, color, shadow = true }: PartProps & { rad: number; tube: number; arc?: number }) {
+export function Torus({ p = [0, 0, 0], r, rad, tube, arc = Math.PI * 2, color, shadow = false }: PartProps & { rad: number; tube: number; arc?: number }) {
   return (
     <mesh position={p} rotation={r} material={toon(color)} castShadow={shadow}>
       <torusGeometry args={[rad, tube, 10, 28, arc]} />
@@ -66,9 +70,9 @@ export function Torus({ p = [0, 0, 0], r, rad, tube, arc = Math.PI * 2, color, s
   );
 }
 
-export function Cone({ p = [0, 0, 0], r, rad, h, color, seg = 16, outline, shadow = true }: PartProps & { rad: number; h: number; seg?: number }) {
+export function Cone({ p = [0, 0, 0], r, rad, h, color, seg = 16, outline, shadow }: PartProps & { rad: number; h: number; seg?: number }) {
   return (
-    <mesh position={p} rotation={r} material={toon(color)} castShadow={shadow}>
+    <mesh position={p} rotation={r} material={toon(color)} castShadow={castsShadow(shadow, Math.max(rad * 2, h))}>
       <coneGeometry args={[rad, h, seg]} />
       {outline && <Outlines thickness={OUTLINE} color={ink} />}
     </mesh>

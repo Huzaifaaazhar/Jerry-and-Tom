@@ -182,7 +182,8 @@ export function processRules(env: EnvironmentDefinition, onRespawn: (a: AgentSta
 
     // Pickups
     for (const p of items.pickups) {
-      if (p.collected) continue;
+      if (p.collected || p.hidden) continue;
+      if (p.collectible && !a.isPlayer) continue;
       const def = getItem(p.type);
       if (!def || !def.collectors.includes(a.archetype)) continue;
       const d = Math.hypot(a.position.x - p.position[0], a.position.z - p.position[2]);

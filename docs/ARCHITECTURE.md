@@ -69,6 +69,23 @@ own mousetrap), `splat` (door slams, pounce into a wall, big falls), `dizzy` (ra
 objects), `pummel` (the dog). Each emits an event, so missions, toasts, camera shake and AI rage
 react without knowing about each other.
 
+### Episode platform (Part 3)
+
+- **Episode packages** - `src/content/episodes/<id>/index.ts`, auto-discovered; may register their
+  own environments (via `deriveEnvironment`), props and items. `_template/` documents the format.
+- **Library** - cards show art, cast, difficulty, playtime, lock state and completion %; the detail
+  panel adds a floor-plan preview generated from the environment data, per-side best times and
+  mission progress, achievements, challenges and collectibles.
+- **Progress** (`engine/progress/`) - a versioned localStorage save. `evaluateRun` is pure: it turns a
+  finished run into completion, best times, furthest mission (for *Continue*), collectibles,
+  episode achievements/challenges, lifetime stats, lifetime character achievements and unlocks.
+- **Character library** - `withVariant` applies costume extras (hat / accessory) only; everything
+  else always comes from the shared definition.
+- **Rendering performance** - walls, trims and wallpaper are baked into per-material batches
+  (`staticBatch.ts`); static props are merged at runtime by shared material (`MergedStatic`);
+  tiny parts skip the shadow pass; the shadow frustum follows the player; adaptive pixel ratio and
+  a low-quality mode (no shadows) for weaker devices.
+
 ## Options considered
 
 ### A: Data-driven episodes on a shared engine (chosen)

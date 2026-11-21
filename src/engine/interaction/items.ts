@@ -45,6 +45,8 @@ export interface PickupInstance {
   /** Pickups in a `group` stay hidden until an episode action reveals the group. */
   group?: string;
   hidden?: boolean;
+  /** Hidden collectible (persists in the save; only the player can pick it up). */
+  collectible?: boolean;
 }
 
 export interface TrapInstance {

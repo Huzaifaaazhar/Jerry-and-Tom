@@ -42,3 +42,12 @@ export async function loadModelManifest(): Promise<ModelManifest> {
   }
   return manifest;
 }
+
+/**
+ * Apply an episode costume to a shared character. Only cosmetic extras (hat, accessory) can change;
+ * proportions, colours, rig and movement always come from the shared library definition.
+ */
+export function withVariant(def: CharacterDefinition, variant?: { hat?: CharacterDefinition['look']['hat']; accessory?: CharacterDefinition['look']['accessory'] }): CharacterDefinition {
+  if (!variant || (!variant.hat && !variant.accessory)) return def;
+  return { ...def, look: { ...def.look, ...(variant.hat ? { hat: variant.hat } : {}), ...(variant.accessory ? { accessory: variant.accessory } : {}) } };
+}

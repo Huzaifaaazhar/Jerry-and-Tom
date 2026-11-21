@@ -79,6 +79,7 @@ export class EpisodeRuntime {
   private stageStartLog = 0;
   private stageStartTime = 0;
   private started = false;
+  private resumeAt = 0;
   private log: Counted[] = [];
   private done = new Set<string>();
   private failed = new Set<string>();
@@ -278,6 +279,15 @@ export class EpisodeRuntime {
     this.evaluate();
   }
 
+  /** Begin the run at a later mission (continue / mission select). Call before the first tick. */
+  startAt(index: number) {
+    this.resumeAt = Math.max(0, Math.min(index, this.stages.length - 1));
+  }
+
+  get resumeIndex() {
+    return this.resumeAt;
+  }
+
   /** Jump straight to a stage (debug / tests / chapter select). */
   skipToStage(index: number) {
     if (!this.stages.length) return;
@@ -295,7 +305,11 @@ export class EpisodeRuntime {
     if (this.outcome) return this.outcome;
     if (!this.started) {
       this.started = true;
-      if (this.stages.length) this.startStage(0);
+      if (this.stages.length) {
+        const st = this.stages[this.resumeAt];
+        if (this.resumeAt > 0) for (const a of st.onResume ?? []) this.hooks.onAction?.(a, { kind: 'stage', id: st.id });
+        this.startStage(this.resumeAt);
+      }
     }
     this.elapsed += dt;
     this.runEvents();

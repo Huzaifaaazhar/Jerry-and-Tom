@@ -1,5 +1,6 @@
 import type { EpisodeDefinition } from '@engine/episode/types';
 
+
 const P = Math.PI;
 
 /**
@@ -15,6 +16,29 @@ const episode: EpisodeDefinition = {
   description:
     'Six missions across the whole house. Pip plans a midnight cheese raid; Barnaby is supposed to be on night watch. Out back, Brick snores by his doghouse - one loud crash and he is up.',
   thumbnail: { motif: 'moon', sky: '#18243f', ground: '#2f8a84' },
+  difficulty: 1,
+  estimatedMinutes: 12,
+  collectibleType: 'goldenThimble',
+  collectibles: [
+    { id: 'thimble-blue-corner', position: [-17.3, 0.1, -15.3] },
+    { id: 'thimble-rose-corner', position: [17.3, 0.1, -15.3] },
+    { id: 'thimble-kitchen-table', position: [11.2, 1.8, 4.4] },
+    { id: 'thimble-hall-end', position: [17.3, 0.1, -2.6] },
+    { id: 'thimble-garden', position: [-19.2, 0.1, 33.2] },
+  ],
+  achievements: [
+    { id: 'pip-win', title: 'Midnight muncher', description: 'Finish Midnight Snack as Pip.', side: 'pip', condition: { type: 'win' } },
+    { id: 'barnaby-win', title: 'Night watchman', description: 'Finish Midnight Snack as Barnaby.', side: 'barnaby', condition: { type: 'win' } },
+    { id: 'pip-untouched', title: 'Not a whisker out of place', description: 'Win as Pip without ever being caught.', side: 'pip', condition: { type: 'winWithout', event: 'caught', who: 'player' } },
+    { id: 'barnaby-graceful', title: 'Graceful as a cat', description: 'Win as Barnaby without a single face-plant.', side: 'barnaby', condition: { type: 'winWithout', event: 'splat', who: 'player' } },
+    { id: 'gag-reel', title: 'Gag reel', description: 'Make Barnaby slip twice in one run.', side: 'pip', condition: { type: 'eventCount', event: 'slipped', who: 'opponent', count: 2 } },
+    { id: 'thimbles', title: 'Thimble collector', description: 'Find all five golden thimbles hidden in the house.', condition: { type: 'allCollectibles' } },
+  ],
+  challenges: [
+    { id: 'pip-speed', title: 'Speedy snack', description: 'Win as Pip in under 6 minutes.', side: 'pip', condition: { type: 'winUnder', seconds: 360 } },
+    { id: 'barnaby-speed', title: 'Quick paws', description: 'Win as Barnaby in under 5 minutes.', side: 'barnaby', condition: { type: 'winUnder', seconds: 300 } },
+    { id: 'perfect', title: 'Perfect night', description: 'Win with every bonus goal ticked.', condition: { type: 'allBonus' } },
+  ],
   environment: 'classic-house',
   lighting: 'night',
   extraProps: [
@@ -30,7 +54,13 @@ const episode: EpisodeDefinition = {
   cast: [
     { characterId: 'pip', playable: true, spawn: { position: [-16.3, 0, 10.5], facing: P / 2 }, respawn: { position: [-16.3, 0, 10.5], facing: P / 2 } },
     { characterId: 'barnaby', playable: true, spawn: { position: [-13.6, 0, 5.0], facing: P / 2 }, respawn: { position: [11, 0, 8.6], facing: -P / 2 } },
-    { characterId: 'brick', playable: false, spawn: { position: [12, 0, 24.2], facing: P }, npc: { mode: 'sleep', home: [12, 24.2], leash: 12 } },
+    {
+      characterId: 'brick',
+      playable: false,
+      variant: { hat: { type: 'nightcap', color: '#5c8fc9', band: '#fff6dc' } },
+      spawn: { position: [12, 0, 24.2], facing: P },
+      npc: { mode: 'sleep', home: [12, 24.2], leash: 12 },
+    },
   ],
   intro: {
     shots: [
@@ -60,6 +90,7 @@ const episode: EpisodeDefinition = {
         {
           id: 'encounter',
           title: 'Uh-oh',
+          onResume: [{ type: 'teleport', characterId: 'pip', position: [0, 0, 7], facing: 0 }],
           brief: 'Barnaby is awake! Break his line of sight - mouse holes and pet flaps are your friends.',
           checkpoint: { position: [-16.3, 0, 10.5], facing: P / 2 },
           onStart: [
@@ -72,6 +103,7 @@ const episode: EpisodeDefinition = {
         {
           id: 'cheese-run',
           title: 'Cheese run',
+          onResume: [{ type: 'npc', characterId: 'barnaby', command: { type: 'wake' } }],
           brief: 'Three wedges are hidden around the house and yard. Grab them while Barnaby prowls.',
           checkpoint: { position: [-16.3, 0, 10.5], facing: P / 2 },
           onStart: [
@@ -83,6 +115,7 @@ const episode: EpisodeDefinition = {
         {
           id: 'big-cheese',
           title: 'The big cheese',
+          onResume: [{ type: 'npc', characterId: 'barnaby', command: { type: 'wake' } }],
           brief: 'A whole cheese wheel sits on the blue bedroom dresser. The hallway is barricaded - find another way, then climb the books and the box.',
           checkpoint: { position: [-3, 0, -7.2], facing: P },
           onStart: [
@@ -148,6 +181,7 @@ const episode: EpisodeDefinition = {
         {
           id: 'encounter',
           title: 'A thief!',
+          checkpoint: { position: [0, 0, 5], facing: P / 2 },
           brief: 'A crash from the kitchen! Get eyes on the culprit.',
           opponentRespawn: { position: [15, 0, 9.4], facing: P },
           onStart: [
@@ -162,6 +196,12 @@ const episode: EpisodeDefinition = {
         {
           id: 'chase',
           title: 'Chase!',
+          checkpoint: { position: [9, 0, 6], facing: P / 2 },
+          onResume: [
+            { type: 'teleport', characterId: 'pip', position: [15, 0, 9.4], facing: P },
+            { type: 'npc', characterId: 'pip', command: { type: 'mode', mode: 'forage' } },
+            { type: 'showPickups', group: 'cheese' },
+          ],
           brief: 'Catch Pip! Press F to pounce, E to grab. Mice use holes you can’t - cut them off.',
           opponentRespawn: { position: [-12, 0, -9], facing: 0 },
           objectives: [{ id: 'catch1', label: 'Catch Pip', type: 'count', event: 'catch', who: 'player', count: 1 }],
@@ -169,6 +209,8 @@ const episode: EpisodeDefinition = {
         {
           id: 'barricade',
           title: 'Barricade',
+          checkpoint: { position: [0, 0, 1], facing: P },
+          onResume: [{ type: 'teleport', characterId: 'pip', position: [-12, 0, -9], facing: 0 }],
           brief: 'Pip slipped away and barricaded the hallway. Smash through it (E, three times).',
           opponentRespawn: { position: [-12, 0, -9], facing: 0 },
           onStart: [
@@ -180,6 +222,11 @@ const episode: EpisodeDefinition = {
         {
           id: 'search',
           title: 'Hide and seek',
+          checkpoint: { position: [-9, 0, -4.4], facing: P },
+          onResume: [
+            { type: 'teleport', characterId: 'pip', position: [-12, 0, -9], facing: 0 },
+            { type: 'npc', characterId: 'pip', command: { type: 'hideIn', roomId: 'bedroom-blue' } },
+          ],
           brief: 'Pip is hiding in the blue bedroom. Search the furniture (E) until you find them.',
           opponentRespawn: { position: [-12, 0, -9], facing: 0 },
           objectives: [{ id: 'found', label: 'Find Pip’s hiding place', type: 'count', event: 'found', who: 'player', count: 1 }],
@@ -187,6 +234,8 @@ const episode: EpisodeDefinition = {
         {
           id: 'final-chase',
           title: 'Final chase',
+          checkpoint: { position: [-9, 0, -8.5], facing: P },
+          onResume: [{ type: 'teleport', characterId: 'pip', position: [-11.4, 0, -11.5], facing: 0 }],
           brief: 'Pip is running for the mouse hole by the back door. Catch them first!',
           timeLimit: 75,
           timeoutReason: 'Pip slipped away into the night.',
@@ -223,6 +272,7 @@ const episode: EpisodeDefinition = {
     { id: 'two-minutes', when: { type: 'time', at: 600 }, do: [{ type: 'toast', text: 'Two minutes until sunrise!', tone: 'bad' }] },
   ],
   audio: {
+    ambience: 'night',
     music: { tempo: 108, root: 50, scale: [0, 2, 3, 5, 7, 9, 10], motif: [0, 2, 4, -1, 3, 2, 0, -1, 4, 5, 4, 2, -1, 0, -1, -1] },
   },
   ending: {

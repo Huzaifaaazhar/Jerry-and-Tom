@@ -5,6 +5,7 @@ import { MainMenu } from './ui/screens/MainMenu';
 import { EpisodeSelect } from './ui/screens/EpisodeSelect';
 import { CharacterSelect } from './ui/screens/CharacterSelect';
 import { HowTo } from './ui/screens/HowTo';
+import { Scrapbook } from './ui/screens/Scrapbook';
 import { GameView } from './ui/GameView';
 import { HUD } from './ui/hud/HUD';
 import { PauseMenu } from './ui/hud/PauseMenu';
@@ -37,6 +38,7 @@ export function App() {
       {screen === 'episodes' && <EpisodeSelect />}
       {screen === 'characters' && <CharacterSelect />}
       {screen === 'howto' && <HowTo />}
+      {screen === 'scrapbook' && <Scrapbook />}
       {screen === 'playing' && <HUD />}
       {screen === 'playing' && touch && !paused && <TouchControls />}
       {screen === 'playing' && paused && <PauseMenu />}

@@ -6,7 +6,9 @@ holes, lay banana peels) or **Barnaby** the cat (chase, pounce, search hiding pl
 mousetraps) while **Brick** the bulldog runs on his own AI and has no patience for cats.
 
 The project is split into a reusable **engine** and **episode content**, so new episodes are
-data files, not engine rewrites.
+content packages, not engine rewrites. Two episodes ship today: **Midnight Snack** (six missions
+per side) and **Sunday Picnic** (four missions per side, unlocked by finishing Episode One). Progress,
+unlocks, best times, achievements, challenges and golden-thimble collectibles are saved on the device.
 
 ```
 npm install
@@ -54,7 +56,7 @@ src/
     characters/      Pip, Barnaby, Brick
     props/           furniture & garden asset library
     environments/    the classic house + backyard
-    episodes/        one file per episode (auto-discovered)
+    episodes/        one folder per episode package (auto-discovered; _template to copy)
   ui/                menus, HUD, pause, results, touch controls
 docs/                architecture, asset pipeline, adding episodes, testing
 tests/unit, tests/e2e

@@ -3,26 +3,24 @@
  * wallpapered room faces, doors with pet flaps, windows, mouse-hole arches, and every prop with its
  * physics. One fixed rigid body holds all static colliders.
  */
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
+import { buildStaticBatches } from './staticBatch';
 import * as THREE from 'three';
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
-import type { BoxSpec, EnvironmentDefinition, LightingPreset, OpeningSpec, PropPlacement, WallSpec } from './types';
-import { splitWall, wallBoxes, wallDir, roomFaces } from './geometry';
+import type { BoxSpec, EnvironmentDefinition, LightingPreset, PropPlacement, WallSpec } from './types';
+import { wallBoxes, wallDir } from './geometry';
 import { getPropType } from './propRegistry';
 import { placementBoxes } from './collect';
-import { toon, floorTexture, wallpaperTexture } from '../style/materials';
+import { toon, floorTexture } from '../style/materials';
 import { palette } from '../style/palette';
 import { groups } from '../core/physics';
 import { Door } from './Door';
 import { Breakable } from './Breakable';
+import { MergedStatic } from './MergedStatic';
 import { Knockable } from './Knockable';
 import { HideSpotRegistrar } from './HideSpotRegistrar';
 import { Lighting, LampProvider } from './lighting';
-import { DEFAULT_WALL_THICKNESS } from './geometry';
 
-const INTERIOR_WALL = '#e8dcc0';
-const EXTERIOR_WALL = '#f2e3c2';
-const TRIM = palette.woodDark;
 
 function StaticColliders({ boxes }: { boxes: BoxSpec[] }) {
   return (
@@ -40,96 +38,6 @@ function StaticColliders({ boxes }: { boxes: BoxSpec[] }) {
       ))}
     </RigidBody>
   );
-}
-
-function WallMeshes({ wall, height }: { wall: WallSpec; height: number }) {
-  const boxes = useMemo(() => wallBoxes(wall, height), [wall, height]);
-  const pieces = useMemo(() => splitWall(Math.hypot(wall.to[0] - wall.from[0], wall.to[1] - wall.from[1]), wall.height ?? height, wall.openings), [wall, height]);
-  if (wall.kind === 'fence') return <Fence wall={wall} />;
-  const mat = toon(wall.kind === 'exterior' ? EXTERIOR_WALL : INTERIOR_WALL);
-  return (
-    <>
-      {boxes.map((b, i) =>
-        pieces[i].glass ? (
-          <mesh key={i} position={b.center} rotation={[0, b.rotation ?? 0, 0]} material={toon('#bfe6f2', { opacity: 0.28 })}>
-            <boxGeometry args={[b.size[0], b.size[1], 0.04]} />
-          </mesh>
-        ) : (
-          <mesh key={i} position={b.center} rotation={[0, b.rotation ?? 0, 0]} material={mat} castShadow receiveShadow>
-            <boxGeometry args={b.size} />
-          </mesh>
-        ),
-      )}
-      {(wall.openings ?? []).map((o, i) => (
-        <OpeningTrim key={i} wall={wall} o={o} height={wall.height ?? height} />
-      ))}
-    </>
-  );
-}
-
-/** Frames for windows/doors/arches and the arched trim around mouse holes. */
-function OpeningTrim({ wall, o, height }: { wall: WallSpec; o: OpeningSpec; height: number }) {
-  const [dx, dz] = wallDir(wall);
-  const t = wall.thickness ?? DEFAULT_WALL_THICKNESS;
-  const yaw = Math.atan2(-dz, dx);
-  const cx = wall.from[0] + dx * o.at;
-  const cz = wall.from[1] + dz * o.at;
-  const archGeo = useMemo(() => (o.kind === 'mousehole' ? mouseHoleArch(o.width, o.height, t + 0.08) : null), [o.kind, o.width, o.height, t]);
-  const trim = toon(TRIM);
-  if (o.kind === 'mousehole' && archGeo) {
-    return <mesh geometry={archGeo} position={[cx, 0, cz]} rotation={[0, yaw, 0]} material={trim} />;
-  }
-  const bottom = o.kind === 'window' ? (o.sill ?? 1) : 0;
-  const top = Math.min(bottom + o.height, height);
-  const fw = 0.14;
-  const depth = t + 0.08;
-  return (
-    <group position={[cx, 0, cz]} rotation={[0, yaw, 0]}>
-      <mesh position={[0, top + fw / 2, 0]} material={trim} castShadow>
-        <boxGeometry args={[o.width + fw * 2, fw, depth]} />
-      </mesh>
-      <mesh position={[-o.width / 2 - fw / 2, (bottom + top) / 2, 0]} material={trim}>
-        <boxGeometry args={[fw, top - bottom, depth]} />
-      </mesh>
-      <mesh position={[o.width / 2 + fw / 2, (bottom + top) / 2, 0]} material={trim}>
-        <boxGeometry args={[fw, top - bottom, depth]} />
-      </mesh>
-      {o.kind === 'window' && (
-        <>
-          <mesh position={[0, bottom - 0.05, 0]} material={trim}>
-            <boxGeometry args={[o.width + fw * 3, 0.1, depth + 0.16]} />
-          </mesh>
-          <mesh position={[0, (bottom + top) / 2, 0]} material={toon(palette.cream)}>
-            <boxGeometry args={[0.06, top - bottom, 0.06]} />
-          </mesh>
-          <mesh position={[0, (bottom + top) / 2, 0]} material={toon(palette.cream)}>
-            <boxGeometry args={[o.width, 0.06, 0.06]} />
-          </mesh>
-        </>
-      )}
-    </group>
-  );
-}
-
-function mouseHoleArch(w: number, h: number, depth: number) {
-  const s = new THREE.Shape();
-  const ow = w / 2 + 0.12;
-  s.moveTo(-ow, 0);
-  s.lineTo(ow, 0);
-  s.lineTo(ow, h + 0.1);
-  s.lineTo(-ow, h + 0.1);
-  s.closePath();
-  const r = w / 2;
-  const hole = new THREE.Path();
-  hole.moveTo(-r, 0);
-  hole.lineTo(r, 0);
-  hole.lineTo(r, h - r);
-  hole.absarc(0, h - r, r, 0, Math.PI, false);
-  hole.lineTo(-r, 0);
-  s.holes.push(hole);
-  const g = new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: false, curveSegments: 16 });
-  g.translate(0, 0, -depth / 2);
-  return g;
 }
 
 function Fence({ wall }: { wall: WallSpec }) {
@@ -164,93 +72,16 @@ function Fence({ wall }: { wall: WallSpec }) {
   );
 }
 
-/** Wallpaper, wainscot, chair rail and baseboard on each wall face inside each room. */
-function RoomPanels({ env }: { env: EnvironmentDefinition }) {
-  const panels = useMemo(() => {
-    const out: { key: string; pos: THREE.Vector3; yaw: number; w: number; y0: number; y1: number; roomId: string }[] = [];
-    const faces = roomFaces(env.rooms, env.walls);
-    faces.forEach((f, fi) => {
-      const len = Math.hypot(f.wall.to[0] - f.wall.from[0], f.wall.to[1] - f.wall.from[1]);
-      const [dx, dz] = wallDir(f.wall);
-      const t = f.wall.thickness ?? DEFAULT_WALL_THICKNESS;
-      const nx = dz * f.side;
-      const nz = -dx * f.side;
-      const yaw = Math.atan2(nx, nz);
-      splitWall(len, f.wall.height ?? env.wallHeight, f.wall.openings).forEach((p, pi) => {
-        if (p.glass) return;
-        const u0 = Math.max(p.u0, f.u0);
-        const u1 = Math.min(p.u1, f.u1);
-        if (u1 - u0 < 0.02) return;
-        const mid = (u0 + u1) / 2;
-        out.push({
-          key: `${fi}-${pi}`,
-          pos: new THREE.Vector3(f.wall.from[0] + dx * mid + nx * (t / 2 + 0.006), 0, f.wall.from[1] + dz * mid + nz * (t / 2 + 0.006)),
-          yaw,
-          w: u1 - u0,
-          y0: p.y0,
-          y1: p.y1,
-          roomId: f.roomId,
-        });
-      });
-    });
-    return out;
-  }, [env]);
-  const rooms = useMemo(() => new Map(env.rooms.map((r) => [r.id, r])), [env]);
+function StaticBatches({ env }: { env: EnvironmentDefinition }) {
+  const batches = useMemo(() => buildStaticBatches(env), [env]);
+  useEffect(() => () => batches.forEach((b) => b.geometry.dispose()), [batches]);
   return (
     <>
-      {panels.map((p) => {
-        const room = rooms.get(p.roomId)!;
-        const wp = room.wallpaper;
-        if (!wp) return null;
-        const split = wp.wainscot ? 1.05 : 0;
-        const parts: JSX.Element[] = [];
-        const paperBottom = Math.max(p.y0, split);
-        if (p.y1 > paperBottom + 0.01) parts.push(<Panel key="p" w={p.w} y0={paperBottom} y1={p.y1} material={paperMaterial(wp)} />);
-        if (wp.wainscot && p.y0 < split) {
-          const top = Math.min(split, p.y1);
-          parts.push(<Panel key="w" w={p.w} y0={p.y0} y1={top} material={toon(wp.wainscot)} />);
-          if (top >= split - 0.001)
-            parts.push(
-              <mesh key="r" position={[0, split, 0.02]} material={toon(TRIM)}>
-                <boxGeometry args={[p.w, 0.08, 0.05]} />
-              </mesh>,
-            );
-        }
-        if (p.y0 < 0.01)
-          parts.push(
-            <mesh key="b" position={[0, 0.09, 0.025]} material={toon(TRIM)}>
-              <boxGeometry args={[p.w, 0.18, 0.05]} />
-            </mesh>,
-          );
-        return (
-          <group key={p.key} position={p.pos} rotation={[0, p.yaw, 0]}>
-            {parts}
-          </group>
-        );
-      })}
+      {batches.map((b) => (
+        <mesh key={b.key} geometry={b.geometry} material={b.material} castShadow={b.castShadow} receiveShadow />
+      ))}
     </>
   );
-}
-
-const paperMats = new Map<string, THREE.Material>();
-function paperMaterial(wp: NonNullable<EnvironmentDefinition['rooms'][number]['wallpaper']>) {
-  const key = `${wp.base}${wp.accent}${wp.pattern}`;
-  let m = paperMats.get(key);
-  if (!m) {
-    m = toon('#ffffff', { map: wallpaperTexture(wp), key: `paper-${key}` });
-    paperMats.set(key, m);
-  }
-  return m;
-}
-
-function Panel({ w, y0, y1, material }: { w: number; y0: number; y1: number; material: THREE.Material }) {
-  const geo = useMemo(() => {
-    const g = new THREE.PlaneGeometry(w, y1 - y0);
-    const uv = g.attributes.uv as THREE.BufferAttribute;
-    for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) * w) / 1.4, (uv.getY(i) * (y1 - y0) + y0) / 1.4);
-    return g;
-  }, [w, y0, y1]);
-  return <mesh geometry={geo} position={[0, (y0 + y1) / 2, 0]} material={material} receiveShadow />;
 }
 
 function Floors({ env }: { env: EnvironmentDefinition }) {
@@ -326,18 +157,29 @@ export function EnvironmentView({ env, lighting, extraProps = [] }: { env: Envir
       <Lighting preset={lighting} bounds={env.bounds} />
       <Floors env={env} />
       <StaticColliders boxes={staticBoxes} />
-      {env.walls.map((w, i) => (
-        <WallMeshes key={i} wall={w} height={env.wallHeight} />
-      ))}
-      <RoomPanels env={env} />
+      <StaticBatches env={env} />
+      {env.walls
+        .filter((w) => w.kind === 'fence')
+        .map((w, i) => (
+          <Fence key={i} wall={w} />
+        ))}
       {doors.map((d) => (
         <Door key={d.key} id={d.key} wall={d.wall} opening={d.o} />
       ))}
+      <MergedStatic>
+        {props.map((p, i) => {
+          const t = getPropType(p.type);
+          const id = p.id ?? `${p.type}-${i}`;
+          if (t?.breakable || t?.pushable) return null;
+          return <PropInstance key={id} p={p} />;
+        })}
+      </MergedStatic>
       {props.map((p, i) => {
         const t = getPropType(p.type);
         const id = p.id ?? `${p.type}-${i}`;
         if (t?.breakable) return <Breakable key={id} id={id} placement={p} def={t.breakable} type={t} />;
-        return <PropInstance key={id} p={p} />;
+        if (t?.pushable) return <PropInstance key={id} p={p} />;
+        return null;
       })}
       {props.map((p, i) => {
         const def = getPropType(p.type);

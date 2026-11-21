@@ -8,6 +8,8 @@ const base: Omit<EpisodeDefinition, 'sides'> = {
   title: 'Stages',
   tagline: '',
   description: '',
+  difficulty: 1,
+  estimatedMinutes: 5,
   thumbnail: { motif: 'moon', sky: '#000', ground: '#0f0' },
   environment: 'x',
   lighting: 'night',

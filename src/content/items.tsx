@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { useMemo } from 'react';
 import { registerItem, registerTrap } from '@engine/interaction/items';
-import { Box, Cyl, Ball } from '@engine/environment/parts';
+import { Box, Cyl, Ball, Torus } from '@engine/environment/parts';
 import { toon } from '@engine/style/materials';
 
 function Cheese() {
@@ -124,3 +124,17 @@ function Rake({ sprung }: { sprung: boolean }) {
   );
 }
 registerTrap({ id: 'rake', label: 'Garden rake', affects: ['hunter', 'guardian'], stunKind: 'dizzy', stunSeconds: 1.8, sound: 'snap', radius: 0.45, Render: Rake, persistent: true });
+
+/** Hidden collectible: a golden thimble. Either character can find it; it stays found in the save. */
+function GoldenThimble() {
+  return (
+    <group scale={0.9}>
+      <Cyl p={[0, 0, 0]} rt={0.12} rb={0.16} h={0.26} color="#f5b92e" seg={18} outline />
+      <Ball p={[0, 0.13, 0]} rad={0.12} s={[1, 0.5, 1]} color="#f5b92e" />
+      {[0.05, -0.05].map((y) => (
+        <Torus key={y} p={[0, y, 0]} r={[Math.PI / 2, 0, 0]} rad={0.145} tube={0.012} color="#d99a12" />
+      ))}
+    </group>
+  );
+}
+registerItem({ id: 'goldenThimble', label: 'Golden thimble', collectors: ['prey', 'hunter'], Render: GoldenThimble });

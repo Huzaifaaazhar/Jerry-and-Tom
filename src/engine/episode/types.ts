@@ -76,6 +76,8 @@ export interface StageDef {
   timeoutReason?: string;
   /** Where the player reappears if caught during this stage. */
   checkpoint?: { position: Vec3Tuple; facing?: number };
+  /** Actions applied only when a run *starts* at this stage (mission select / continue). */
+  onResume?: EpisodeAction[];
   /** Where the AI opponent reappears if caught during this stage. */
   opponentRespawn?: { position: Vec3Tuple; facing?: number };
   /** Actions fired when the stage begins (AI commands, doors, cutscenes...). */
@@ -99,8 +101,15 @@ export interface SideConfig {
   opponentAi?: NpcOptions;
 }
 
+/** Episode-specific costume / temporary look. Only accessories and hats - never a different character. */
+export interface CharacterVariant {
+  hat?: { type: 'nightcap' | 'sunHat' | 'chefHat' | 'partyHat'; color: string; band?: string };
+  accessory?: { type: 'scarf' | 'collar' | 'bowtie'; color: string; tag?: string };
+}
+
 export interface CastEntry {
   characterId: string;
+  variant?: CharacterVariant;
   /** Playable sides can be chosen by the player; the other side becomes AI. */
   playable: boolean;
   spawn: { position: Vec3Tuple; facing?: number };
@@ -154,12 +163,44 @@ export interface EndingCard {
   caption: string;
 }
 
+/** Conditions for achievements and challenges, evaluated against a finished run. */
+export type RunCondition =
+  | { type: 'win' }
+  | { type: 'winUnder'; seconds: number }
+  | { type: 'winWithout'; event: CountedEvent; who: Who }
+  | { type: 'eventCount'; event: CountedEvent; who: Who; count: number }
+  | { type: 'allBonus' }
+  | { type: 'allCollectibles' };
+
+export interface AchievementDef {
+  id: string;
+  title: string;
+  description: string;
+  /** Limit to one playable character (side). */
+  side?: string;
+  condition: RunCondition;
+}
+
 export interface EpisodeDefinition {
   id: string;
   number: number;
   title: string;
   tagline: string;
   description: string;
+  /** 1 = easy, 2 = medium, 3 = hard. */
+  difficulty: 1 | 2 | 3;
+  /** Rough minutes for a first play-through of one side. */
+  estimatedMinutes: number;
+  /** Episodes that must be completed (as either side) before this one unlocks. */
+  unlock?: { after: string[] };
+  /** Episode-specific achievements (one-off unlocks). */
+  achievements?: AchievementDef[];
+  /** Replayable challenges shown on the episode card. */
+  challenges?: AchievementDef[];
+  /** Hidden collectibles: found once per save, by either character. */
+  collectibles?: { id: string; position: Vec3Tuple }[];
+  /** Item type used to render collectibles (default 'goldenThimble'). */
+  collectibleType?: string;
   /** Procedural title-card art used for the episode thumbnail. `image` overrides it. */
   thumbnail: { motif: 'moon' | 'sun' | 'cheese' | 'bone' | 'star'; sky: string; ground: string; image?: string };
   environment: string;
@@ -172,7 +213,7 @@ export interface EpisodeDefinition {
   /** Persistent environmental hazards (puddles, rakes) placed at the start. */
   hazards?: { kind: string; position: Vec3Tuple }[];
   events: ChaseEvent[];
-  audio: { music: MusicTheme; sounds?: Record<string, string> };
+  audio: { music: MusicTheme; sounds?: Record<string, string>; ambience?: 'night' | 'day' | 'none' };
   ending: { win: Record<string, EndingCard>; lose: Record<string, EndingCard> };
   /** Opening sequence: camera shots with captions, played before control is handed over. */
   intro?: { shots: CutsceneShot[]; text?: string };

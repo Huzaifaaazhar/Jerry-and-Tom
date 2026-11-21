@@ -277,7 +277,7 @@ export class GuardianBrain implements Brain {
 
   private startWarn(ctx: BrainContext, seconds = 0.8) {
     if (this.state === 'chase' || this.state === 'warn') return;
-    audio.play('bark', { pitch: ctx.def.voice.pitch * 0.85 });
+    audio.play('growl', { pitch: ctx.def.voice.pitch });
     world.playOneShot(ctx.self, 'react', 0.4);
     world.events.emit({ type: 'spotted', agentId: ctx.self.id, targetId: 'hunter' });
     this.warnUntil = world.time + seconds;

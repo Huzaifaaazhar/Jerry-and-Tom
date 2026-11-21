@@ -4,7 +4,7 @@
  * zone is actually reachable for the characters who need it.
  */
 import type { EpisodeDefinition } from './types';
-import { getEnvironment } from './registry';
+import { getEnvironment, allEpisodes } from './registry';
 import { hasCharacter, getCharacter } from '../characters/registry';
 import { getItem, getTrap } from '../interaction/items';
 import { getPropType } from '../environment/propRegistry';
@@ -56,6 +56,26 @@ export function validateEpisode(ep: EpisodeDefinition): string[] {
     if (!side.stages?.length && !side.objectives.some((o) => !o.optional)) errors.push(`${ep.id}/${sideId}: no required objectives`);
     for (const k of Object.keys(side.charges ?? {})) if (!getTrap(k)) errors.push(`${ep.id}/${sideId}: unknown trap item "${k}"`);
   }
+  // Library metadata
+  if (![1, 2, 3].includes(ep.difficulty)) errors.push(`${ep.id}: difficulty must be 1, 2 or 3`);
+  if (!(ep.estimatedMinutes > 0)) errors.push(`${ep.id}: estimatedMinutes must be positive`);
+  for (const id of ep.unlock?.after ?? []) {
+    if (id === ep.id) errors.push(`${ep.id}: cannot unlock after itself`);
+    else if (!allEpisodes().some((e) => e.id === id)) errors.push(`${ep.id}: unlock refers to unknown episode "${id}"`);
+  }
+  const playableIds = new Set(playable.map((c) => c.characterId));
+  for (const a of [...(ep.achievements ?? []), ...(ep.challenges ?? [])]) {
+    if (a.side && !playableIds.has(a.side)) errors.push(`${ep.id}: achievement "${a.id}" is for non-playable "${a.side}"`);
+    if (a.condition.type === 'allCollectibles' && !ep.collectibles?.length) errors.push(`${ep.id}: "${a.id}" needs collectibles`);
+  }
+  const allIds = [...(ep.achievements ?? []), ...(ep.challenges ?? [])].map((a) => a.id);
+  if (new Set(allIds).size !== allIds.length) errors.push(`${ep.id}: duplicate achievement/challenge ids`);
+  if (ep.collectibles?.length && !getItem(ep.collectibleType ?? 'goldenThimble')) errors.push(`${ep.id}: unknown collectible type`);
+  for (const c of ep.cast) {
+    const v = c.variant as Record<string, unknown> | undefined;
+    if (v && Object.keys(v).some((k) => k !== 'hat' && k !== 'accessory')) errors.push(`${ep.id}: variants may only change hat/accessory for "${c.characterId}"`);
+  }
+
   for (const ev of ep.events) if (ev.when.type === 'event' && ev.when.zoneId && !zoneIds.has(ev.when.zoneId)) errors.push(`${ep.id}: event "${ev.id}" uses unknown zone`);
 
   // Reachability on the navigation grid.
@@ -84,6 +104,17 @@ export function validateEpisode(ep: EpisodeDefinition): string[] {
       const end = path?.[path.length - 1];
       if (!end || Math.hypot(end[0] - p.position[0], end[1] - p.position[2]) > 1.2) errors.push(`${ep.id}: pickup "${p.id}" unreachable for ${c.characterId}`);
     }
+  }
+  // Collectibles must be reachable by at least one playable character.
+  for (const col of ep.collectibles ?? []) {
+    const reachable = playable.some((c) => {
+      if (!hasCharacter(c.characterId)) return true;
+      const nav = navFor(c.characterId);
+      const path = nav.findPath([c.spawn.position[0], c.spawn.position[2]], [col.position[0], col.position[2]]);
+      const end = path?.[path.length - 1];
+      return !!end && Math.hypot(end[0] - col.position[0], end[1] - col.position[2]) < 1.2;
+    });
+    if (!reachable) errors.push(`${ep.id}: collectible "${col.id}" is unreachable`);
   }
   return errors;
 }

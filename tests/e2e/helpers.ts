@@ -1,10 +1,28 @@
 import type { Page } from '@playwright/test';
 
-export async function startEpisode(page: Page, episodeTitle: string, character: string) {
+/** Seed a save where Episode One is complete so later episodes are unlocked. */
+export async function unlockAll(page: Page) {
+  await page.goto('/');
+  await page.evaluate(() =>
+    localStorage.setItem(
+      'squeak-pounce-save-v1',
+      JSON.stringify({
+        version: 1,
+        episodes: { 'ep01-midnight-snack': { sides: { pip: { plays: 1, wins: 1, losses: 0, completed: true, bestTime: 400, furthestStage: 5 } }, collectibles: [], achievements: [], challenges: [] } },
+        stats: {},
+        achievements: [],
+        lastPlayed: null,
+      }),
+    ),
+  );
+}
+
+export async function startEpisode(page: Page, episodeTitle: string, character: string, opts: { keepSave?: boolean } = {}) {
+  if (!opts.keepSave && episodeTitle !== 'Midnight Snack') await unlockAll(page);
   await page.goto('/');
   await page.getByRole('button', { name: 'Play', exact: true }).click();
-  await page.getByRole('button', { name: new RegExp(episodeTitle) }).first().hover();
-  await page.getByRole('button', { name: 'Choose a side' }).click();
+  await page.getByRole('button', { name: new RegExp(`: ${episodeTitle}`) }).first().click();
+  await page.getByRole('button', { name: /^(Play|Replay) episode$/ }).click().catch(() => undefined);
   await page.getByRole('radio', { name: new RegExp(character) }).click();
   await page.getByRole('button', { name: new RegExp(`Play as ${character}`) }).click();
   await page.waitForFunction(() => (window as any).__GAME__?.world?.player?.grounded === true, null, { timeout: 90_000 });
