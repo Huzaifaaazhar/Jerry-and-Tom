@@ -7,13 +7,22 @@ import { touchMove, setButton, addLook, type Button } from '@engine/input/input'
 import { useGame } from '@engine/core/store';
 import { getCharacter } from '@engine/characters/registry';
 
+/** Pointer capture can throw (e.g. pointer already released); input must never depend on it. */
+function capture(el: Element, id: number) {
+  try {
+    el.setPointerCapture(id);
+  } catch {
+    /* ignore */
+  }
+}
+
 function HoldButton({ b, label, className = '' }: { b: Button; label: string; className?: string }) {
   return (
     <button
       className={`touch-btn ${className}`}
       aria-label={label}
       onPointerDown={(e) => {
-        e.currentTarget.setPointerCapture(e.pointerId);
+        capture(e.currentTarget, e.pointerId);
         setButton('touch', b, true);
       }}
       onPointerUp={() => setButton('touch', b, false)}
@@ -38,7 +47,7 @@ export function TouchControls() {
       <div
         className="touch-left"
         onPointerDown={(e) => {
-          e.currentTarget.setPointerCapture(e.pointerId);
+          capture(e.currentTarget, e.pointerId);
           stick.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
           setKnob({ x: e.clientX, y: e.clientY, dx: 0, dy: 0 });
         }}
@@ -79,7 +88,7 @@ export function TouchControls() {
       <div
         className="touch-right"
         onPointerDown={(e) => {
-          e.currentTarget.setPointerCapture(e.pointerId);
+          capture(e.currentTarget, e.pointerId);
           look.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
         }}
         onPointerMove={(e) => {
