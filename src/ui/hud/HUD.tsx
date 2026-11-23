@@ -135,6 +135,7 @@ export function HUD() {
       {hud.prompt && !hud.stunned && !useGame.getState().cutscene && (
         <div className="prompt" role="status">
           <kbd>E</kbd>
+          <span className="or-click">/ click</span>
           <span>{hud.prompt}</span>
         </div>
       )}

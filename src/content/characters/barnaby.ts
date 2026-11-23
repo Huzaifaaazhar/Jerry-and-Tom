@@ -9,7 +9,7 @@ const barnaby: CharacterDefinition = {
   tagline: 'Long legs, longer schemes.',
   description: 'Sprints, pounces and lays mousetraps. Can open doors and search every hiding place - but he really should not wake the dog.',
   body: { radius: 0.36, halfHeight: 0.38, mass: 4 },
-  movement: { walk: 3.4, run: 6.7, sneak: 2.0, accel: 32, jump: 9.6, airControl: 0.55, staminaDrain: 0.16, staminaRegen: 0.22 },
+  movement: { walk: 3.8, run: 6.7, sneak: 2.2, accel: 28, jump: 9.6, airControl: 0.65, staminaDrain: 0.14, staminaRegen: 0.25 },
   ability: 'pounce',
   trap: { kind: 'mousetrap', charges: 3 },
   perception: { viewDistance: 15, fov: 120, hearing: 1 },

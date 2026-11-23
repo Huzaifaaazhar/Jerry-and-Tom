@@ -66,6 +66,14 @@ export class ProceduralAnimator {
   private wasGrounded = true;
   private tailSwing = 0;
   private pupil = new THREE.Vector2();
+  // Body dynamics for follow-through: smoothed acceleration and turn rate.
+  private prevVel = new THREE.Vector2();
+  private prevFacing = 0;
+  private accel = new THREE.Vector2();
+  private turnRate = 0;
+  private lastStep = 0;
+  private fidget: { kind: 'tap' | 'stretch' | 'shrug' | null; until: number } = { kind: null, until: 0 };
+  private nextFidget = 4 + Math.random() * 4;
 
   constructor(private rig: Rig, private seed = Math.random() * 10) {}
 
@@ -90,6 +98,23 @@ export class ProceduralAnimator {
     if (hidden) return;
 
     const speed = Math.hypot(agent.velocity.x, agent.velocity.z);
+    // Acceleration in the character's local frame (x = sideways, y = forward) and turn rate.
+    if (dt > 0) {
+      const ax = (agent.velocity.x - this.prevVel.x) / dt;
+      const az = (agent.velocity.z - this.prevVel.y) / dt;
+      const sf = Math.sin(agent.facing);
+      const cf = Math.cos(agent.facing);
+      const fwd = ax * sf + az * cf;
+      const side = ax * cf - az * sf;
+      this.accel.x += (clamp(side, -40, 40) - this.accel.x) * dampFactor(10, dt);
+      this.accel.y += (clamp(fwd, -40, 40) - this.accel.y) * dampFactor(10, dt);
+      let dYaw = agent.facing - this.prevFacing;
+      while (dYaw > Math.PI) dYaw -= Math.PI * 2;
+      while (dYaw < -Math.PI) dYaw += Math.PI * 2;
+      this.turnRate += (clamp(dYaw / dt, -12, 12) - this.turnRate) * dampFactor(8, dt);
+    }
+    this.prevVel.set(agent.velocity.x, agent.velocity.z);
+    this.prevFacing = agent.facing;
     const pose = basePose();
     const T = this.t;
     let cadence = 0;
@@ -213,11 +238,25 @@ export class ProceduralAnimator {
         break;
     }
 
-    // Lean into acceleration / turns
-    if (state === 'walk' || state === 'run') {
-      pose.hipsRot[0] += clamp(speed * 0.035, 0, 0.32);
+    // Lean into speed and acceleration, bank into turns (cartoon weight and momentum).
+    const moving = state === 'walk' || state === 'run' || state === 'sneak' || state === 'idle';
+    if (moving && agent.grounded) {
+      pose.hipsRot[0] += clamp(speed * 0.04, 0, 0.36) + clamp(this.accel.y * 0.012, -0.28, 0.3);
+      const bank = clamp(-this.turnRate * Math.min(speed, 7) * 0.022, -0.4, 0.4) + clamp(-this.accel.x * 0.008, -0.2, 0.2);
+      pose.hipsRot[2] += bank;
+      pose.head[2] -= bank * 0.6; // keep the eyes level-ish
+      // Look where we're turning.
+      pose.head[1] += clamp(this.turnRate * 0.12, -0.5, 0.5);
     }
-    this.applyPose(pose, dt, state === 'slip' || state === 'react' ? 22 : 14);
+    // Footfall bounce: a tiny squash every step while running.
+    if (state === 'run' && agent.grounded) {
+      const step = Math.floor(this.phase / Math.PI);
+      if (step !== this.lastStep) {
+        this.lastStep = step;
+        this.kick(-0.07);
+      }
+    }
+    this.applyPose(pose, dt, state === 'slip' || state === 'react' || state === 'splat' ? 22 : 15);
 
     // Squash & stretch: spring toward 1, plus stretch while rising.
     let target = 1;
@@ -267,7 +306,40 @@ export class ProceduralAnimator {
       this.idleLook = (Math.random() - 0.5) * 1.2;
     }
     pose.head[1] = this.idleLook;
-    pose.head[2] = Math.sin(T * 0.9) * 0.05;
+    pose.head[2] = Math.sin(T * 0.9) * 0.07;
+    // Weight shift from foot to foot.
+    const shift = Math.sin(T * 0.55);
+    pose.hipsRot[2] += shift * 0.05;
+    pose.thL[2] = -0.06 + shift * 0.04;
+    pose.thR[2] = 0.06 + shift * 0.04;
+    pose.knL = Math.max(0, shift) * 0.18;
+    pose.knR = Math.max(0, -shift) * 0.18;
+    // Occasional fidgets so nobody ever stands frozen.
+    if (state === 'idle') {
+      this.nextFidget -= dt;
+      if (this.nextFidget <= 0) {
+        const kinds = ['tap', 'stretch', 'shrug'] as const;
+        this.fidget = { kind: kinds[Math.floor(Math.random() * kinds.length)], until: T + 1.6 };
+        this.nextFidget = 5 + Math.random() * 6;
+      }
+      if (this.fidget.kind && T < this.fidget.until) {
+        const k = Math.sin(((this.fidget.until - T) / 1.6) * Math.PI);
+        if (this.fidget.kind === 'tap') {
+          pose.thR = [-0.25 * k, 0, 0.08];
+          pose.anR = -0.5 * k + Math.max(0, Math.sin(T * 18)) * 0.5 * k;
+        } else if (this.fidget.kind === 'stretch') {
+          pose.shL = [-2.6 * k, 0, -0.5 * k];
+          pose.shR = [-2.6 * k, 0, 0.5 * k];
+          pose.spine[0] = -0.25 * k;
+          pose.head[0] = -0.3 * k;
+        } else {
+          pose.shL[2] = -0.18 - 0.35 * k;
+          pose.shR[2] = 0.18 + 0.35 * k;
+          pose.elL = pose.elR = -1.2 * k - 0.25;
+          pose.head[2] = 0.2 * k;
+        }
+      } else this.fidget.kind = null;
+    }
     if (state === 'celebrate') {
       pose.hipsY = Math.abs(Math.sin(T * 7)) * 0.12;
       pose.shL = [-2.8, 0, -0.4 + Math.sin(T * 14) * 0.2];
@@ -288,22 +360,28 @@ export class ProceduralAnimator {
     const p = this.phase;
     const s = Math.sin(p);
     const c = Math.cos(p);
-    const legA = stride * (state === 'run' ? 1.05 : 0.75);
-    pose.thL = [-s * legA, 0, -0.03];
-    pose.thR = [s * legA, 0, 0.03];
-    pose.knL = Math.max(0, -c) * legA * 1.5 + 0.1;
-    pose.knR = Math.max(0, c) * legA * 1.5 + 0.1;
-    pose.anL = -pose.thL[0] * 0.4 - pose.knL * 0.5;
-    pose.anR = -pose.thR[0] * 0.4 - pose.knR * 0.5;
-    pose.hipsY = Math.abs(Math.cos(p)) * (state === 'run' ? 0.06 : 0.03) - 0.01;
-    pose.hipsRot[1] = s * 0.12;
-    pose.spine[1] = -s * 0.16;
-    pose.hipsRot[2] = c * 0.04;
+    const legA = stride * (state === 'run' ? 1.2 : 0.8);
+    // Front leg reaches, back leg kicks up behind - a springy cartoon gait.
+    pose.thL = [-s * legA, 0, -0.04];
+    pose.thR = [s * legA, 0, 0.04];
+    pose.knL = Math.max(0, -c) * legA * (state === 'run' ? 1.9 : 1.4) + 0.12;
+    pose.knR = Math.max(0, c) * legA * (state === 'run' ? 1.9 : 1.4) + 0.12;
+    pose.anL = -pose.thL[0] * 0.45 - pose.knL * 0.55;
+    pose.anR = -pose.thR[0] * 0.45 - pose.knR * 0.55;
+    // Bounce twice per stride (each footfall), with the head counter-bobbing.
+    const bounce = Math.abs(Math.cos(p));
+    pose.hipsY = bounce * (state === 'run' ? 0.11 : 0.045) - 0.015;
+    pose.hipsRot[1] = s * (state === 'run' ? 0.2 : 0.14);
+    pose.spine[1] = -s * (state === 'run' ? 0.28 : 0.2);
+    pose.hipsRot[2] = c * (state === 'run' ? 0.05 : 0.07);
+    pose.spine[0] = (1 - bounce) * 0.06;
+    pose.head[0] = -(1 - bounce) * 0.08;
     if (state === 'run') {
-      pose.shL = [s * 1.15, 0, -0.25];
-      pose.shR = [-s * 1.15, 0, 0.25];
-      pose.elL = pose.elR = -1.35;
-      pose.head[0] = -0.12;
+      pose.shL = [s * 1.45, 0, -0.3];
+      pose.shR = [-s * 1.45, 0, 0.3];
+      pose.elL = -1.25 - Math.max(0, -s) * 0.4;
+      pose.elR = -1.25 - Math.max(0, s) * 0.4;
+      pose.head[0] -= 0.1;
     } else if (state === 'sneak') {
       // Classic cartoon tiptoe: crouched, knees high, paws up by the chin.
       pose.hipsY = -0.12 + Math.abs(Math.sin(p)) * 0.05;
@@ -320,10 +398,10 @@ export class ProceduralAnimator {
       pose.elL = pose.elR = -1.1;
       pose.head = [-0.35, Math.sin(this.t * 1.7) * 0.5, 0];
     } else {
-      pose.shL = [s * 0.65, 0, -0.2];
-      pose.shR = [-s * 0.65, 0, 0.2];
-      pose.elL = -0.35 - Math.max(0, s) * 0.3;
-      pose.elR = -0.35 - Math.max(0, -s) * 0.3;
+      pose.shL = [s * 0.8, 0, -0.22];
+      pose.shR = [-s * 0.8, 0, 0.22];
+      pose.elL = -0.35 - Math.max(0, s) * 0.45;
+      pose.elR = -0.35 - Math.max(0, -s) * 0.45;
     }
   }
 
@@ -359,30 +437,39 @@ export class ProceduralAnimator {
     if (agent.status.stunKind === 'pummel') pose.spine[0] = 0.3;
   }
 
+  /**
+   * Blend bones toward the pose. Different joints settle at different speeds - legs snap (they carry
+   * the weight), the torso follows, the head and arms trail behind - which gives overlapping action
+   * instead of a stiff, all-at-once pose change.
+   */
   private applyPose(pose: Pose, dt: number, lambda: number) {
     const r = this.rig;
-    const f = dampFactor(lambda, dt);
+    const legs = dampFactor(lambda * 1.5, dt);
+    const body = dampFactor(lambda, dt);
+    const spine = dampFactor(lambda * 0.7, dt);
+    const head = dampFactor(lambda * 0.55, dt);
+    const arms = dampFactor(lambda * 0.8, dt);
+    const fore = dampFactor(lambda * 0.6, dt);
     const L = r.dims.hipsY;
-    const set = (g: THREE.Object3D, e: Euler3) => {
+    const set = (g: THREE.Object3D, e: Euler3, f: number) => {
       g.rotation.x += (e[0] - g.rotation.x) * f;
       g.rotation.y += (e[1] - g.rotation.y) * f;
       g.rotation.z += (e[2] - g.rotation.z) * f;
     };
-    r.hips.position.y += (L + pose.hipsY * L - r.hips.position.y) * f;
-    set(r.hips, pose.hipsRot);
-    set(r.spine, pose.spine);
-    const head: Euler3 = [pose.head[0], pose.head[1] + this.lookYaw, pose.head[2]];
-    set(r.head, head);
-    set(r.shoulderL, pose.shL);
-    set(r.shoulderR, pose.shR);
-    r.elbowL.rotation.x += (pose.elL - r.elbowL.rotation.x) * f;
-    r.elbowR.rotation.x += (pose.elR - r.elbowR.rotation.x) * f;
-    set(r.thighL, pose.thL);
-    set(r.thighR, pose.thR);
-    r.kneeL.rotation.x += (pose.knL - r.kneeL.rotation.x) * f;
-    r.kneeR.rotation.x += (pose.knR - r.kneeR.rotation.x) * f;
-    r.ankleL.rotation.x += (pose.anL - r.ankleL.rotation.x) * f;
-    r.ankleR.rotation.x += (pose.anR - r.ankleR.rotation.x) * f;
+    r.hips.position.y += (L + pose.hipsY * L - r.hips.position.y) * legs;
+    set(r.hips, pose.hipsRot, body);
+    set(r.spine, pose.spine, spine);
+    set(r.head, [pose.head[0], pose.head[1] + this.lookYaw, pose.head[2]], head);
+    set(r.shoulderL, pose.shL, arms);
+    set(r.shoulderR, pose.shR, arms);
+    r.elbowL.rotation.x += (pose.elL - r.elbowL.rotation.x) * fore;
+    r.elbowR.rotation.x += (pose.elR - r.elbowR.rotation.x) * fore;
+    set(r.thighL, pose.thL, legs);
+    set(r.thighR, pose.thR, legs);
+    r.kneeL.rotation.x += (pose.knL - r.kneeL.rotation.x) * legs;
+    r.kneeR.rotation.x += (pose.knR - r.kneeR.rotation.x) * legs;
+    r.ankleL.rotation.x += (pose.anL - r.ankleL.rotation.x) * legs;
+    r.ankleR.rotation.x += (pose.anR - r.ankleR.rotation.x) * legs;
   }
 
   /** Finger curl per pose: fists when running, open splayed hands for grabs and double-takes. */

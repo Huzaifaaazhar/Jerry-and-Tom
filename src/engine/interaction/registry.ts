@@ -76,7 +76,9 @@ class InteractionRegistry {
       const dz = item.position.z - agent.position.z;
       const dy = Math.abs(item.position.y - agent.position.y);
       const d = Math.hypot(dx, dz);
-      if (d > item.radius + agent.radius || dy > 2.2) continue;
+      // Small characters get a little extra reach so prompts don't need pixel-perfect positioning.
+      const reach = agent.archetype === 'prey' ? 0.4 : 0.15;
+      if (d > item.radius + agent.radius + reach || dy > 2.2) continue;
       const prompt = item.prompt(agent);
       if (!prompt) continue;
       const facing = d > 0.01 ? (dx * fx + dz * fz) / d : 1;

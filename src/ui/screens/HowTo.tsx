@@ -9,9 +9,9 @@ const ROWS: [string, string][] = [
   ['Space', 'Jump - onto sofas, beds, tables and counters'],
   ['Shift', 'Sprint (uses stamina)'],
   ['Ctrl or C', 'Sneak - quiet steps, harder to spot'],
-  ['E', 'Interact: doors, hide, search, knock things over, grab'],
+  ['E or Click', 'Interact: doors, hide, search, knock things over, grab'],
   ['Q', 'Drop your trap item (mousetrap or banana peel)'],
-  ['F', 'Ability: pounce (cat) or taunt (mouse)'],
+  ['F or Right-click', 'Ability: pounce (cat) or taunt (mouse)'],
   ['Esc or P', 'Pause'],
 ];
 
@@ -33,8 +33,13 @@ export function HowTo() {
             {ROWS.map(([k, v]) => (
               <div key={k}>
                 <dt>
-                  {k.split(' ').map((p) => (
-                    <kbd key={p}>{p}</kbd>
+                  {k.split(' or ').map((alt, i) => (
+                    <span key={alt} className="key-alt">
+                      {i > 0 && <span className="key-or">or</span>}
+                      {alt.split(' ').map((p) => (
+                        <kbd key={p}>{p}</kbd>
+                      ))}
+                    </span>
                   ))}
                 </dt>
                 <dd>{v}</dd>
@@ -44,7 +49,7 @@ export function HowTo() {
         </section>
         <section className="panel">
           <h3>Touch and gamepad</h3>
-          <p>On a phone or tablet, drag the left stick to move and swipe the right side of the screen to look. Buttons on the right jump, grab, sprint, drop traps and use your ability.</p>
+          <p>On a phone or tablet, drag anywhere on the left to move - push further to run - and tap Sneak above the stick to tiptoe. Swipe the right side to look. Your right thumb has four buttons: Jump, an action button that changes to whatever you can do right now (Hide, Grab, Open door…), your ability and your trap.</p>
           <p>Gamepads work too: left stick moves, right stick looks, A jumps, X interacts, B drops a trap, Y uses your ability, triggers sprint and sneak.</p>
           <h3>Cartoon rules</h3>
           <p>Mice fit through mouse holes, pet flaps and under beds. Cats open doors and can search any hiding place. Loud crashes wake the bulldog - and he only has a grudge against cats.</p>

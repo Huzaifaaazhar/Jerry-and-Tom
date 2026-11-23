@@ -36,6 +36,7 @@ export function ThirdPersonCamera() {
   const desired = useMemo(() => new THREE.Vector3(), []);
   const tmp = useMemo(() => new THREE.Vector3(), []);
   const smoothTarget = useRef<THREE.Vector3 | null>(null);
+  const lookAhead = useRef(new THREE.Vector3());
   const dist = useRef(5);
   const fov = useRef(62);
   /** Extra pitch applied automatically when the camera is squeezed against a wall. */
@@ -104,9 +105,12 @@ export function ThirdPersonCamera() {
       cameraState.pitch = clamp(cameraState.pitch + look.y * sens * (settings.invertY ? -1 : 1), -0.2, 1.25);
       cameraState.zoom = clamp(cameraState.zoom * (1 + consumeZoom() * 0.0012), 0.55, 1.7);
       // Auto-follow behind the character while running and not steering the camera.
-      const moving = Math.hypot(player.velocity.x, player.velocity.z) > 1;
-      if (moving && world.time - cameraState.lastLook > 1.6 && input.source !== 'touch') {
-        cameraState.yaw = dampAngle(cameraState.yaw, player.facing + Math.PI, 1.1, dt);
+      const hs = Math.hypot(player.velocity.x, player.velocity.z);
+      const idleLook = world.time - cameraState.lastLook;
+      if (hs > 1 && idleLook > (input.source === 'touch' ? 1.0 : 1.4)) {
+        // Swing in behind the character - faster when sprinting so chases stay readable.
+        const strength = (hs > 5 ? 2.4 : 1.4) * Math.min(1, (idleLook - 1) * 1.5 + 0.3);
+        cameraState.yaw = dampAngle(cameraState.yaw, player.facing + Math.PI, strength, dt);
       }
     }
 
@@ -115,6 +119,13 @@ export function ThirdPersonCamera() {
     else target.copy(player.position);
     if (!player.status.hiddenIn && player.body) target.y -= def.body.halfHeight + def.body.radius;
     target.y += def.camera.height;
+    // Look slightly ahead of where the character is heading.
+    if (!player.status.hiddenIn) {
+      lookAhead.current.x += (player.velocity.x * 0.16 - lookAhead.current.x) * dampFactor(3, dt);
+      lookAhead.current.z += (player.velocity.z * 0.16 - lookAhead.current.z) * dampFactor(3, dt);
+      target.x += lookAhead.current.x;
+      target.z += lookAhead.current.z;
+    }
     if (!smoothTarget.current) smoothTarget.current = target.clone();
     smoothTarget.current.x += (target.x - smoothTarget.current.x) * dampFactor(18, dt);
     smoothTarget.current.z += (target.z - smoothTarget.current.z) * dampFactor(18, dt);

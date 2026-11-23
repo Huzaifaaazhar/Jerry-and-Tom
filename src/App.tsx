@@ -32,7 +32,7 @@ export function App() {
   useEffect(() => audio.setVolumes(settings.sfxVolume, settings.musicVolume), [settings.sfxVolume, settings.musicVolume]);
   const inGame = screen === 'playing' || screen === 'results';
   return (
-    <div className="app" onPointerDown={() => audio.unlock()}>
+    <div className={`app ${touch ? 'touch-mode' : ''}`} onPointerDown={() => audio.unlock()}>
       {inGame && <GameView />}
       {screen === 'menu' && <MainMenu />}
       {screen === 'episodes' && <EpisodeSelect />}

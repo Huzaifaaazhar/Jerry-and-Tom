@@ -348,7 +348,7 @@ export class HunterBrain implements Brain {
     const g = grabbable(self, 0.55);
     if (g) {
       if (!this.grabAt) {
-        this.grabAt = now + 0.24 - skill * 0.08;
+        this.grabAt = now + 0.32 - skill * 0.08;
         world.playOneShot(self, 'grab', 0.3);
       } else if (now >= this.grabAt) {
         this.grabAt = 0;

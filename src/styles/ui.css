@@ -442,3 +442,55 @@ kbd {
 @media (max-height: 760px) {
   .library .ep-tag { display: none; }
 }
+
+/* ------------------------------------------------------------------ */
+/* Touch layout v2: two-thumb design                                   */
+/* ------------------------------------------------------------------ */
+.touch-left { width: 48%; height: 62%; }
+.touch-right { width: 52%; }
+.touch-hint { bottom: calc(2.2rem + var(--safe-b)); left: 1.4rem; font-size: var(--t-sm); }
+.stick-knob { transition: background-color 120ms; }
+.stick-knob.running { background: var(--tomato); }
+.touch-sneak {
+  position: absolute; left: 1rem; bottom: calc(42% + var(--safe-b)); z-index: 6; min-width: 64px; height: 40px; padding: 0 0.9rem;
+  border-radius: var(--r-pill); border: var(--line) solid var(--ink); background: rgba(255, 246, 220, 0.85); font-weight: 600; touch-action: none;
+}
+.touch-sneak.on { background: var(--teal); color: var(--paper); }
+.touch-arc { position: absolute; right: calc(0.9rem + env(safe-area-inset-right, 0px)); bottom: calc(0.9rem + var(--safe-b)); width: 210px; height: 210px; z-index: 6; pointer-events: none; }
+.touch-arc .touch-btn { position: absolute; pointer-events: auto; display: grid; place-items: center; padding: 0; }
+.touch-arc .touch-btn svg { width: 28px; height: 28px; }
+.arc-jump { right: 0; bottom: 0; width: 86px !important; height: 86px !important; background: var(--mustard) !important; font-family: var(--font-display); font-size: 1.1rem !important; }
+.arc-use { right: 98px; bottom: 6px; width: 70px !important; height: 70px !important; font-size: 0.78rem !important; line-height: 1.05; opacity: 0.75; }
+.arc-use.ready { opacity: 1; background: var(--tomato) !important; color: var(--paper); animation: pop 260ms var(--ease-pop); }
+.arc-ability { right: 8px; bottom: 98px; width: 58px; height: 58px; }
+.arc-trap { right: 84px; bottom: 84px; width: 56px; height: 56px; }
+.touch-badge { position: absolute; top: -6px; right: -6px; min-width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: var(--tomato); color: var(--paper); border: 2px solid var(--ink); font-family: var(--font-display); font-size: 0.75rem; }
+.touch-buttons { display: none; }
+
+/* On touch devices the HUD gets out of the thumbs' way. */
+.touch-mode .hud-bottom-left { left: 50%; bottom: auto; top: calc(3.9rem + var(--safe-t)); transform: translateX(-50%); align-items: center; }
+.touch-mode .hud-bottom-left .who-name { display: none; }
+.touch-mode .hud-bottom-left .stamina { width: 7rem; height: 10px; }
+.touch-mode .kit { display: none; }
+.touch-mode .prompt kbd { display: none; }
+.touch-mode .prompt { bottom: calc(38% + var(--safe-b)); padding-left: 1.1rem; }
+.touch-mode .detect, .touch-mode .scent { bottom: auto; top: calc(0.8rem + var(--safe-t)); right: 4.4rem; }
+.touch-mode .hud-room { display: none; }
+.or-click { font-size: 0.75rem; font-weight: 600; opacity: 0.7; margin-left: -0.3rem; }
+.touch-mode .or-click { display: none; }
+.key-alt { display: inline-flex; gap: 0.25rem; align-items: center; }
+.key-or { font-size: var(--t-xs); font-weight: 600; margin: 0 0.2rem; }
+.keys > div { grid-template-columns: 12rem 1fr; }
+/* Touch: compact mission card, prompt out of the play area, sneak clear of the HUD. */
+.touch-mode .hud-mission { transform: scale(0.78); transform-origin: top left; max-width: 17rem; top: calc(4.4rem + var(--safe-t)); }
+.touch-mode .hud-mission .bonus { display: none; }
+.touch-mode .hud-clock { left: 0.8rem; transform: none; }
+.touch-mode .chase-stamp { left: auto; right: -5.5rem; top: 0.1rem; transform: rotate(-6deg); }
+.touch-mode .prompt { bottom: calc(1.1rem + var(--safe-b)); font-size: var(--t-md); }
+.touch-mode .touch-hint { display: none; }
+.touch-sneak { bottom: calc(1rem + var(--safe-b)); left: 1rem; }
+.touch-mode .toasts { top: calc(4.2rem + var(--safe-t)); width: min(26rem, 50vw); font-size: var(--t-sm); }
+@media (max-height: 520px) {
+  .touch-mode .hud-mission { transform: scale(0.68); }
+  .touch-mode .hud-mission ul:not(.bonus) li:nth-child(n + 2) { display: none; }
+}

@@ -8,7 +8,7 @@ import * as THREE from 'three';
 import { useGame } from '@engine/core/store';
 import { getEpisode } from '@engine/episode/registry';
 import { GameSession } from '@engine/game/GameSession';
-import { handleKey, addLook, input, resetInput } from '@engine/input/input';
+import { handleKey, addLook, input, resetInput, setButton } from '@engine/input/input';
 import { world } from '@engine/core/world';
 import { audio } from '@engine/audio/audio';
 
@@ -93,11 +93,23 @@ export function GameView() {
     <div
       ref={wrap}
       className="game-view"
+      onContextMenu={(e) => e.preventDefault()}
+      onPointerUp={(e) => {
+        if (e.pointerType !== 'mouse') return;
+        setButton('keyboard', 'interact', false);
+        setButton('keyboard', 'ability', false);
+      }}
       onPointerDown={(e) => {
         audio.unlock();
         if (e.pointerType !== 'mouse') return;
         const canvas = wrap.current?.querySelector('canvas');
         const s = useGame.getState();
+        // With the mouse captured: left click = interact / grab, right click = ability.
+        if (document.pointerLockElement && s.screen === 'playing' && !s.paused) {
+          if (e.button === 0) setButton('keyboard', 'interact', true);
+          if (e.button === 2) setButton('keyboard', 'ability', true);
+          return;
+        }
         if (canvas && !document.pointerLockElement && s.screen === 'playing' && !s.paused) {
           try {
             const p = canvas.requestPointerLock() as unknown as Promise<void> | undefined;

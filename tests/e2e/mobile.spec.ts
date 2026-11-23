@@ -7,7 +7,8 @@ test.use({ viewport, userAgent, deviceScaleFactor, isMobile, hasTouch });
 test.describe('mobile touch controls', () => {
   test('virtual stick moves the player and the jump button jumps', async ({ page }) => {
     await startEpisode(page, 'Midnight Snack', 'Pip');
-    await expect(page.locator('.touch-buttons')).toBeVisible();
+    await expect(page.locator('.touch-arc')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Sneak' })).toBeVisible();
     const a = await player(page);
     const box = (await page.locator('.touch-left').boundingBox())!;
     const sx = box.x + box.width / 2;

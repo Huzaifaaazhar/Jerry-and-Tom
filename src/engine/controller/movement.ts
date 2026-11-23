@@ -129,6 +129,22 @@ export function stepMovement(agent: AgentState, def: CharacterDefinition, dt: nu
     agent.cooldowns.pounceLift = agent.status.actionUntil;
   }
 
+  // Ledge assist: if we're airborne, pushing into something whose top is just above our feet,
+  // give a little hop so climbing onto furniture doesn't need pixel-perfect jumps.
+  if (!grounded && !stunned && agent.airTime > 0.06 && vy < 3 && moveLen > 0.3 && (agent.cooldowns.mantle ?? 0) < now) {
+    const fx = Math.sin(agent.facing);
+    const fz = Math.cos(agent.facing);
+    const feet = t.y - def.body.halfHeight - def.body.radius;
+    const reach = def.body.radius + 0.35;
+    const low = rworld.castRay(new rapier.Ray({ x: t.x, y: feet + 0.12, z: t.z }, { x: fx, y: 0, z: fz }), reach, true, undefined, groups.ray, undefined, body);
+    const high = rworld.castRay(new rapier.Ray({ x: t.x, y: feet + agent.height * 0.9 + 0.25, z: t.z }, { x: fx, y: 0, z: fz }), reach + 0.2, true, undefined, groups.ray, undefined, body);
+    if (low && !high) {
+      vy = Math.max(vy, 4.8);
+      vx += fx * 0.8;
+      vz += fz * 0.8;
+      agent.cooldowns.mantle = now + 0.45;
+    }
+  }
   body.setLinvel({ x: vx, y: vy, z: vz }, true);
   agent.velocity.set(vx, vy, vz);
 
