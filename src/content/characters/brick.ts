@@ -1,0 +1,40 @@
+import type { CharacterDefinition } from '@engine/characters/types';
+
+/** Brick - a barrel-chested chocolate bulldog. Sleeps hard, wakes grumpy, guards the yard. */
+const brick: CharacterDefinition = {
+  id: 'brick',
+  name: 'Brick',
+  species: 'Bulldog',
+  archetype: 'guardian',
+  tagline: 'Do not wake him up.',
+  description: 'Independent AI. Naps by his doghouse until a crash or a careless cat wakes him - then gives that cat a walloping.',
+  body: { radius: 0.44, halfHeight: 0.33, mass: 7 },
+  movement: { walk: 3.0, run: 6.6, sneak: 2, accel: 26, jump: 7.5, airControl: 0.4, staminaDrain: 0, staminaRegen: 1 },
+  ability: null,
+  trap: null,
+  perception: { viewDistance: 13, fov: 150, hearing: 1.1 },
+  voice: { sound: 'bark', pitch: 1 },
+  camera: { distance: 5.6, height: 1.3 },
+  ui: { color: '#8a5a3a', accent: '#3f9b4a' },
+  look: {
+    height: 1.6,
+    fur: '#8a5a3a',
+    furDark: '#5e3a24',
+    belly: '#f4e6cf',
+    muzzle: '#f4e6cf',
+    nose: '#2a1a12',
+    innerEar: '#c08a6a',
+    iris: '#3a2a20',
+    legLength: 0.3,
+    torso: { w: 0.2, h: 0.22, d: 0.17, belly: 0.04 },
+    head: { r: 0.2, squash: 0.85, muzzle: 0.11, jowls: true },
+    eyes: { w: 0.045, h: 0.055, spacing: 0.075, y: 0.06, pupil: 0.7 },
+    ears: { type: 'floppy', size: 0.14 },
+    arms: { length: 0.32, thickness: 0.05, hand: 0.06 },
+    legs: { thickness: 0.052, foot: 0.085 },
+    tail: { type: 'stub', length: 0.08, thickness: 0.035 },
+    teeth: 'underbite',
+    accessory: { type: 'collar', color: '#3f9b4a', tag: '#f5b92e' },
+  },
+};
+export default brick;

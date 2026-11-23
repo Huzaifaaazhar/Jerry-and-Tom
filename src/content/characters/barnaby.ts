@@ -1,0 +1,42 @@
+import type { CharacterDefinition } from '@engine/characters/types';
+
+/** Barnaby - a lanky silver tabby with bold charcoal stripes, amber eyes and a blue bow tie. The house hunter. */
+const barnaby: CharacterDefinition = {
+  id: 'barnaby',
+  name: 'Barnaby',
+  species: 'Silver tabby cat',
+  archetype: 'hunter',
+  tagline: 'Long legs, longer schemes.',
+  description: 'Sprints, pounces and lays mousetraps. Can open doors and search every hiding place - but he really should not wake the dog.',
+  body: { radius: 0.36, halfHeight: 0.38, mass: 4 },
+  movement: { walk: 3.8, run: 6.7, sneak: 2.2, accel: 28, jump: 9.6, airControl: 0.65, staminaDrain: 0.14, staminaRegen: 0.25 },
+  ability: 'pounce',
+  trap: { kind: 'mousetrap', charges: 3 },
+  perception: { viewDistance: 15, fov: 120, hearing: 1 },
+  voice: { sound: 'yowl', pitch: 1 },
+  camera: { distance: 5.4, height: 1.25 },
+  ui: { color: '#a9b0b6', accent: '#2f6fb0' },
+  look: {
+    height: 1.55,
+    fur: '#9ea5ab',
+    furDark: '#3b3f44',
+    belly: '#aeb4b9',
+    muzzle: '#c3c8cc',
+    nose: '#b8646c',
+    innerEar: '#d99ba0',
+    iris: '#e8a33a',
+    stripes: true,
+    legLength: 0.36,
+    torso: { w: 0.15, h: 0.19, d: 0.13, belly: 0.05 },
+    head: { r: 0.17, squash: 0.92, muzzle: 0.075, cheekFluff: true },
+    eyes: { w: 0.055, h: 0.075, spacing: 0.06, y: 0.035, pupil: 0.55, irisRing: true },
+    ears: { type: 'pointed', size: 0.13 },
+    arms: { length: 0.3, thickness: 0.033, hand: 0.045 },
+    legs: { thickness: 0.04, foot: 0.075 },
+    tail: { type: 'long', length: 0.55, thickness: 0.03 },
+    teeth: 'fangs',
+    whiskers: true,
+    accessory: { type: 'bowtie', color: '#2f6fb0' },
+  },
+};
+export default barnaby;

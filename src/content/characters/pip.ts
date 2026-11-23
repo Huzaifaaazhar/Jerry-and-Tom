@@ -1,0 +1,42 @@
+import type { CharacterDefinition } from '@engine/characters/types';
+
+/** Pip - a pocket-sized, chocolate-brown house mouse with a white face and a red scarf. Quick, cheeky, unflappable. */
+const pip: CharacterDefinition = {
+  id: 'pip',
+  name: 'Pip',
+  species: 'House mouse',
+  archetype: 'prey',
+  tagline: 'Small mouse, big appetite.',
+  description: 'Slips through mouse holes and pet flaps, hides almost anywhere, drops banana peels and taunts a dizzy cat.',
+  body: { radius: 0.15, halfHeight: 0.1, mass: 0.6 },
+  movement: { walk: 3.6, run: 7.0, sneak: 2.0, accel: 30, jump: 7.8, airControl: 0.85, staminaDrain: 0.1, staminaRegen: 0.3 },
+  ability: 'taunt',
+  trap: { kind: 'bananaPeel', charges: 3 },
+  perception: { viewDistance: 12, fov: 220, hearing: 1.2 },
+  voice: { sound: 'squeak', pitch: 1.1 },
+  camera: { distance: 4.1, height: 0.95 },
+  ui: { color: '#a8714a', accent: '#e0452b' },
+  look: {
+    height: 0.52,
+    fur: '#5e3b2a',
+    furDark: '#3f261a',
+    belly: '#f7f1ea',
+    muzzle: '#f7f1ea',
+    nose: '#ef8a9a',
+    innerEar: '#f2a3b0',
+    iris: '#3a2a20',
+    legLength: 0.24,
+    torso: { w: 0.13, h: 0.15, d: 0.12, belly: 0.06 },
+    head: { r: 0.24, squash: 0.94, muzzle: 0.085, tuft: true },
+    eyes: { w: 0.07, h: 0.095, spacing: 0.075, y: 0.05, pupil: 0.65 },
+    ears: { type: 'round', size: 0.16 },
+    arms: { length: 0.24, thickness: 0.03, hand: 0.045 },
+    legs: { thickness: 0.034, foot: 0.08 },
+    tail: { type: 'thin', length: 0.75, thickness: 0.018 },
+    teeth: 'buck',
+    whiskers: true,
+    accessory: { type: 'scarf', color: '#e0452b' },
+    outline: 0.9,
+  },
+};
+export default pip;
